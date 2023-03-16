@@ -1,13 +1,17 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <Servo.h>
+#include <Adafruit_TCA8418.h>
 
 
 //Paramaters
 #define RFID_RESCAN_DELAY 1000
+#define RFID_TAG {0x93, 0xFE, 0xCF, 0x1D}
+#define RFID_CARD {0x73, 0x9B, 0x17, 0x94}
 #define SERVO_UNLOCK_POSITION 180
 #define SERVO_LOCK_POSITION 0
-
+#define KEYPAD_ROWS 3
+#define KEYPAD_COLS 4
 
 //Peripheral assignment
 //(using hardware I2C, SPI, UART)
@@ -26,6 +30,20 @@ Servo servo1;
 Servo servo2;
 Servo servo3;
 
+#define REED_1              5
+#define REED_2              6
+#define REED_3              7
+Adafruit_TCA8418 tio;
+Adafruit_TCA8418 keypad;
+char keymap[KEYPAD_COLS][KEYPAD_ROWS] = {
+    {'#', '0', '*'},
+    {'9', '8', '7'},
+    {'6', '5', '4'},
+    {'3', '2', '1'},
+};
+
+
+
 //Globals
 struct Compartment {
   int number;
@@ -38,7 +56,7 @@ struct Compartment {
   bool usingRFID;
   byte authTag[10];
   bool usingPin;
-  int pin;
+  char pin[5];
   bool usingFP;
   int fpNum;
 };
@@ -46,15 +64,21 @@ Compartment locker1;
 Compartment locker2;
 Compartment locker3;
 
-
 long lastRFIDScan;
 byte lastRFIDTag[10];
 
+char enteredPin[5];
+int pinIndex; 
+
+
+//junk test globals
+long nextPrint;
 
 void setup() 
 {
   Serial.begin(9600); 
-  //while (!Serial); //wait for serial to begin
+  while (!Serial); //wait for serial to begin
+  Serial.println("Serial Begin:");
   SPI.begin();
 
   //RFID setup
@@ -72,18 +96,47 @@ void setup()
   locker2 = createCompartment(2);
   locker3 = createCompartment(3);
   
+  //TCA8418 I2C GPIO Expander/Keypad setup
+  if (! tio.begin(TCA8418_DEFAULT_ADDR, &Wire)) 
+  {
+    Serial.println("TCA8418 not found, check wiring & pullups!");
+    while (1);
+  }
+  if (! keypad.begin(TCA8418_DEFAULT_ADDR, &Wire)) 
+  {
+    Serial.println("keypad not found, check wiring & pullups!");
+    while (1);
+  }
+  keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
+  tio.pinMode(REED_1, INPUT_PULLUP);
+  tio.pinMode(REED_2, INPUT_PULLUP);
+  tio.pinMode(REED_3, INPUT_PULLUP);
+  keypad.flush();
 
+
+  //Globals init
+  pinIndex = 0;
+
+
+  //Lock servos (remove later)
+  servoLock(1);
+  delay(1000);
+  servoLock(2);
+  delay(1000);
+  servoLock(3);
 
   //Test unlocking
-  byte card[] = {0x73, 0x9B, 0x17, 0x94};
-  startLock(2, -1, card, -1, -1);
-  Serial.println("Locker 2 locked with card");
+  byte card[] = RFID_CARD;
+  startLock(2, -1, card, NULL, -1);
+  Serial.println("Locker #2 locked with card");
 
-  delay(2000); // wait so both servos arent moving at the same time
-
-  startLock(1, 10, NULL, -1, -1);
+  startLock(1, 10, NULL, NULL, -1);
   Serial.println("Unlocking #1 in 10s");
+
+  nextPrint = millis()+2000;
 }
+
+
 
 void loop() 
 {
@@ -91,17 +144,31 @@ void loop()
   checkTimeUp();
   scanRFID();
 
-  //Handle menu functionality
+  //pin
+  char pressed = checkKeypad();
+  pinBuilder(pressed);
+
+  //report reed switches
+  if(false && millis() >= nextPrint)
+  {
+    Serial.printf("Reed 1: %d\tReed 2: %d\tReed 3: %d\n", getReed(1),getReed(2),getReed(3));
+    nextPrint = millis()+2000;
+  }
 }
 
+/*--------------------------------------------*/
 /*---------------RFID FUNCTIONS---------------*/
-void scanRFID() 
+/*--------------------------------------------*/
+
+//check for an RFID tag
+//returns a pointer to the byte array containing its uid
+byte * scanRFID() 
 {
   if ( ! rfid.PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
-    return;
+    return NULL;
   }
   if ( ! rfid.PICC_ReadCardSerial()) {   //Since a PICC placed get Serial and continue
-    return;
+    return NULL;
   }
 
   //A tag was found
@@ -111,14 +178,14 @@ void scanRFID()
   if( memcmp(scanned, &lastRFIDTag, sizeof(scanned)) == 0 && millis()-lastRFIDScan < RFID_RESCAN_DELAY)
   {
     lastRFIDScan = millis();
-    return;
+    return NULL;
   }
 
   Serial.print("Scanned tag: ");
   printByteAr(scanned);
   
-  // byte card[] = {0x73, 0x9B, 0x17, 0x94};
-  // byte tag[] = {0x93, 0xFE, 0xCF, 0x1D};
+  // byte card[] = RFID_CARD;
+  // byte tag[] = RFID_TAG;
 
   // if( memcmp(scanned, card, sizeof(scanned)) == 0)
   // {
@@ -134,16 +201,18 @@ void scanRFID()
   lastRFIDScan = millis();
 
   //Check if this RFID tag is registered to a locker
-  int lockerNum = checkForRegisteredRFID(scanned);
-  if(lockerNum > 0)
-    unlock(lockerNum);
+  // int lockerNum = checkForRegisteredRFID(scanned);
+  // if(lockerNum > 0)
+  //   unlock(lockerNum);
+
+  return scanned;
 }
 
 //Returns the locker number of the fist locker with a matching rfid tag
 //returns -1 if none
 int checkForRegisteredRFID(byte * scanned)
 {
-  printByteAr(locker2.authTag);
+  //printByteAr(locker2.authTag);
 
   if( locker1.usingRFID && memcmp(scanned, locker1.authTag, sizeof(scanned)) == 0)
   {
@@ -162,6 +231,7 @@ int checkForRegisteredRFID(byte * scanned)
     return -1;
   }
 }
+//Print an array of bytes in hex
 void printByteAr(byte * b)
 {
   Serial.print("0x");
@@ -175,9 +245,12 @@ void printByteAr(byte * b)
   Serial.println();
 }
 
+/*----------------------------------------------*/
 /*---------------LOCKER FUNCTIONS---------------*/
+/*----------------------------------------------*/
+
 //Configure and start lock
-void startLock(int lockerNumber, int seconds, byte * rfidTag, int pin, int fpNumber)
+void startLock(int lockerNumber, int seconds, byte * rfidTag, char * pin, int fpNumber)
 {
   Compartment * comp = getLockerPointer(lockerNumber);
 
@@ -185,7 +258,7 @@ void startLock(int lockerNumber, int seconds, byte * rfidTag, int pin, int fpNum
     setLockTime(comp, seconds);
   if(rfidTag != NULL)
     setRFIDTag(comp, rfidTag);
-  if(pin >= 0 )
+  if(pin != NULL )
     setPin(comp, pin);
   if(fpNumber >= 0 )
     setFingerprint(comp, fpNumber);
@@ -203,8 +276,7 @@ void unlock ( Compartment * c )  //can call with pointer or number (see helpers)
   clearLocker(c);
 }
 
-
-//Simple helper functions
+//Initialize a Compartment
 Compartment createCompartment (int lockerNumber)
 {
   Compartment newCom;
@@ -219,13 +291,13 @@ Compartment createCompartment (int lockerNumber)
   newCom.unlockTime = -1;
   newCom.usingRFID = false;
   newCom.usingPin = false;
-  newCom.pin = -1;
   newCom.usingFP = false;
   newCom.fpNum = -1;
   
   
   return newCom;
 }
+//Clear/ reinitialize a Compartment
 void clearLocker(Compartment * c)
 {
   c->isLocked = false;
@@ -234,11 +306,13 @@ void clearLocker(Compartment * c)
   c->usingTimer = false;
   c->unlockTime = -1;
   c->usingRFID = false;
+  memset(c->authTag, 0, sizeof(c->authTag));
   c->usingPin = false;
-  c->pin = -1;
+  memset(c->pin, 0, sizeof(c->pin));
   c->usingFP = false;
   c->fpNum = -1;
 }
+//Check all compartments to see if their time is up, unlock if true
 void checkTimeUp()
 {
   uint32_t time = millis();
@@ -258,6 +332,7 @@ void checkTimeUp()
     unlock(&locker3);
   }
 }
+//Unlock a compartment, check for errors and clear its settings
 void unlock ( int lockerNumber )
 {
   Compartment * comp = getLockerPointer(lockerNumber);
@@ -273,16 +348,17 @@ void setRFIDTag(Compartment * c, byte * tag)
   c->usingRFID = true;
   memcpy(c->authTag, tag, sizeof(tag));  
 }
-void setPin(Compartment * c, int pin)
+void setPin(Compartment * c, char * pin)
 {
   c->usingPin = true;
-  c->pin = pin;
+  memcpy(c->pin, pin, sizeof(pin));
 }
 void setFingerprint(Compartment * c, int fpNumber)
 {
   c->usingFP = true;
   c->fpNum = fpNumber;
 }
+//Returns the pointer of the locker specified
 Compartment * getLockerPointer(int lockerNumber)
 {
   switch(lockerNumber)
@@ -302,6 +378,33 @@ Compartment * getLockerPointer(int lockerNumber)
   }
   return NULL;
 }
+//Read the value of a reed switch 0->closed 1->open
+int getReed(int lockerNumber)
+{
+  switch(lockerNumber)
+  {
+    case 1:
+    {
+      return tio.digitalRead(REED_1);
+    }
+    case 2:
+    {
+      return tio.digitalRead(REED_2);
+    }
+    case 3:
+    {
+      return tio.digitalRead(REED_3);
+    }
+  }
+  return -1;
+}
+
+
+/*---------------------------------------------*/
+/*---------------SERVO FUNCTIONS---------------*/
+/*---------------------------------------------*/
+
+//Get the servo object of the specified locker
 Servo getServo(int servoNumber)
 {
   switch(servoNumber)
@@ -322,17 +425,114 @@ Servo getServo(int servoNumber)
   Servo badServo;
   return badServo;
 }
-
-/*---------------SERVO FUNCTIONS---------------*/
+//Move the servo to the unlock position
 void servoUnlock (int lockerNumber)
 {
   Compartment * comp = getLockerPointer(lockerNumber);
   comp->servo.write(SERVO_UNLOCK_POSITION);
 }
+//Move the servo to the lock position
 void servoLock (int lockerNumber)
 {
   Compartment * comp = getLockerPointer(lockerNumber);
   comp->servo.write(SERVO_LOCK_POSITION);
 }
 
+/*----------------------------------------------*/
+/*---------------KEYPAD FUNCTIONS---------------*/
+/*----------------------------------------------*/
 
+//Read the input on the keypad.
+//returns 0 if no input or the char of the pressed key.
+//clears input once read
+char checkKeypad()
+{
+  if (keypad.available() > 0)
+  {
+    // datasheet page 15 - Table 1
+    int k = keypad.getEvent();
+
+    // Serial.print("K: ");
+    // Serial.print(k, DEC);
+    // Serial.print("\t");
+    // printBinLZ(k);
+    // Serial.print("\t");
+    // Serial.print(k, HEX);
+    // Serial.println();
+
+    // we dont care about release events
+    if ( !(k & 0x80) ) 
+    {
+      keypad.flush();
+      return 0;
+    }
+
+    k &= 0x7F; //remove leading 1 -> 1000 0000
+    k--; // decrement for array
+
+    //check for invalid entries
+    if( k%10 >= KEYPAD_COLS || k/10 >= KEYPAD_ROWS )
+    {
+      keypad.flush();
+      return 0;
+    }
+
+    char pressed = keymap[k%10][k/10];
+    Serial.printf("User pressed %c", pressed);
+    Serial.println();
+
+    // Serial.print("Row: ");
+    // Serial.print((k%10)+1);
+    // Serial.print("\tCol: ");
+    // Serial.print((k/10)+1);
+    // Serial.println();
+    // Serial.println();
+
+    keypad.flush();
+    return pressed;
+  }
+
+  return 0;
+}
+//Print binary with leading zeros
+void printBinLZ(int n)
+{
+  for (int i = 0; i < 8; i++)
+  {
+        if (n < pow(2, i))
+              Serial.print(B0);
+  }
+  Serial.print(n, BIN);
+}
+
+
+/*---------------------------------------------------*/
+/*---------------FINGERPRINT FUNCTIONS---------------*/
+/*---------------------------------------------------*/
+
+
+
+
+/*--------------------------------------------------*/
+/*---------------MENU/INPUT FUNCTIONS---------------*/
+/*--------------------------------------------------*/
+
+//Add a character to the pin.
+//returns 1 if pin is now complete, 0 otherwise 
+int pinBuilder(char c)
+{
+  if( pinIndex < 4 && c != 0)
+  {
+    enteredPin[pinIndex++] = c;
+    //Serial.println(enteredPin);
+  }
+  else if (pinIndex == 4)
+  {
+    Serial.print("Full pin: ");
+    Serial.println(enteredPin);
+    pinIndex = 0;
+    return 1;
+  }
+
+  return 0;
+}

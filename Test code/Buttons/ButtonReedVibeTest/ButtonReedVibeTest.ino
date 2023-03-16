@@ -29,10 +29,8 @@ Adafruit_TCA8418 tio;
 
 void setup()
 {
-  Serial.begin(115200);
-  while (!Serial) {
-    delay(10);
-  }
+  Serial.begin(9600); 
+  while (!Serial)
   Serial.println(__FILE__);
 
   if (! tio.begin(TCA8418_DEFAULT_ADDR, &Wire)) {
