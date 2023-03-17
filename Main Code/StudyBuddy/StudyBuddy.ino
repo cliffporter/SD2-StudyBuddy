@@ -2,6 +2,10 @@
 #include <MFRC522.h>
 #include <Servo.h>
 #include <Adafruit_TCA8418.h>
+#include <Adafruit_Fingerprint.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 
 //Paramaters
@@ -12,12 +16,19 @@
 #define SERVO_LOCK_POSITION 0
 #define KEYPAD_ROWS 3
 #define KEYPAD_COLS 4
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 //Peripheral assignment
 //(using hardware I2C, SPI, UART)
-#define DISP_CS             13
-#define DISP_RST            2
-//<setup for display here>
+#define OLED_DC     12
+#define OLED_CS     13
+#define OLED_RESET  2
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
+  &SPI, OLED_DC, OLED_RESET, OLED_CS);
+
+#define mySerial Serial1
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 #define RFID_CS             11 
 #define RFID_RST            10              
@@ -77,6 +88,16 @@ void setup()
   Serial.println("Serial Begin:");
   SPI.begin();
 
+  //Fingerprint sensor setup
+  finger.begin(57600);
+  delay(5);
+  if (finger.verifyPassword()) {
+    Serial.println("Found fingerprint sensor!");
+  } else {
+    Serial.println("Did not find fingerprint sensor :(");
+    while (1) { delay(1); }
+  }
+
   //RFID setup
   rfid.PCD_Init();	
 	delay(4);				// Optional delay. Some board do need more time after init to be ready, see RFID lib Readme
@@ -109,7 +130,12 @@ void setup()
   tio.pinMode(REED_3, INPUT_PULLUP);
   keypad.flush();
 
-  //pinMode(A1, INPUT);
+  //Display setup
+  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+  display.clearDisplay();
 
 
   //Globals init
@@ -305,17 +331,17 @@ void checkTimeUp()
 {
   uint32_t time = millis();
   
-  if(locker1.usingTimer && time >= locker1.unlockTime )
+  if(locker1.usingTimer && (time >= locker1.unlockTime) )
   {
     unlock(&locker1);
   }
 
-  if(locker2.usingTimer && time >= locker2.unlockTime )
+  if(locker2.usingTimer && (time >= locker2.unlockTime) )
   {
     unlock(&locker2);
   }
 
-  if(locker3.usingTimer && time >= locker3.unlockTime )
+  if(locker3.usingTimer && (time >= locker3.unlockTime) )
   {
     unlock(&locker3);
   }
@@ -495,7 +521,7 @@ void printBinLZ(int n)
 
 
 /*--------------------------------------------------*/
-/*---------------MENU/INPUT FUNCTIONS---------------*/
+/*------------------INPUT FUNCTIONS-----------------*/
 /*--------------------------------------------------*/
 
 //Add a character to the pin.
@@ -523,7 +549,666 @@ int pinBuilder(char c)
 /*---------------FINGERPRINT FUNCTIONS---------------*/
 /*---------------------------------------------------*/
 
+//Scan sensor image, return -2 if error, return -1 if no finger placed, return 0 if no match, otherwise return first matching ID
+int getFingerprintID() 
+{
+  uint8_t p = finger.getImage();
+  switch (p) 
+  {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.println("No finger detected");
+      return -1;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return -2;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      return -2;
+    default:
+      Serial.println("Unknown error");
+      return -2;
+  }
 
+  // OK success!
 
+  p = finger.image2Tz();
+  switch (p) 
+  {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return -2;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return -2;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return -2;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return -2;
+    default:
+      Serial.println("Unknown error");
+      return -2;
+  }
 
+  // OK converted!
+  p = finger.fingerSearch();
+  if (p == FINGERPRINT_OK) 
+  {
+    Serial.println("Found a print match!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return -2;
+  } else if (p == FINGERPRINT_NOTFOUND) {
+    Serial.println("Did not find a match");
+    return 0;
+  } else {
+    Serial.println("Unknown error");
+    return -2;
+  }
+
+  // found a match!
+  Serial.print("Found ID #"); Serial.print(finger.fingerID);
+  Serial.print(" with confidence of "); Serial.println(finger.confidence);
+
+  return finger.fingerID;
+}
+
+//Enrolls fingerprint, returning -2 if there is an error, otherwise return 1
+int getFingerprintEnroll(int id) 
+{
+
+  int p = -1;
+  Serial.print("Waiting for valid finger to enroll as #"); Serial.println(id);
+  while (p != FINGERPRINT_OK) 
+  {
+    p = finger.getImage();
+    switch (p) 
+    {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.println(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(1);
+  switch (p) 
+  {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return -2;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return -2;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return -2;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return -2;
+    default:
+      Serial.println("Unknown error");
+      return -2;
+  }
+
+  Serial.println("Remove finger");
+  delay(2000);
+  p = 0;
+  while (p != FINGERPRINT_NOFINGER) 
+  {
+    p = finger.getImage();
+  }
+  Serial.print("ID "); Serial.println(id);
+  p = -1;
+  Serial.println("Place same finger again");
+  while (p != FINGERPRINT_OK) 
+  {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.print(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(2);
+  switch (p) 
+  {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return -2;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return -2;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return -2;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return -2;
+    default:
+      Serial.println("Unknown error");
+      return -2;
+  }
+
+  // OK converted!
+  Serial.print("Creating model for #");  Serial.println(id);
+
+  p = finger.createModel();
+  if (p == FINGERPRINT_OK) 
+  {
+    Serial.println("Prints matched!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) 
+  {
+    Serial.println("Communication error");
+    return -2;
+  } else if (p == FINGERPRINT_ENROLLMISMATCH) 
+  {
+    Serial.println("Fingerprints did not match");
+    return -2;
+  } else {
+    Serial.println("Unknown error");
+    return -2;
+  }
+
+  Serial.print("ID "); Serial.println(id);
+  p = finger.storeModel(id);
+  if (p == FINGERPRINT_OK) 
+  {
+    Serial.println("Stored!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) 
+  {
+    Serial.println("Communication error");
+    return -2;
+  } else if (p == FINGERPRINT_BADLOCATION) 
+  {
+    Serial.println("Could not store in that location");
+    return -2;
+  } else if (p == FINGERPRINT_FLASHERR) 
+  {
+    Serial.println("Error writing to flash");
+    return -2;
+  } else {
+    Serial.println("Unknown error");
+    return -2;
+  }
+
+  return 1;
+}
+
+/*--------------------------------------------------*/
+/*-------------------MENU FUNCTIONS-----------------*/
+/*--------------------------------------------------*/
+
+//Draws a square with the compartment numer in it
+void drawSquare(int num, int x, int y) 
+{
+  display.fillRect(x, y, 30, 30, SSD1306_WHITE);
+
+  display.setTextSize(3);
+  display.setTextColor(SSD1306_BLACK);
+  display.cp437(true);
+
+  display.setCursor(x+8, y+4);
+  display.write(String(num).c_str());
+
+  display.display();
+}
+
+//Draws a lock with the compartment number, locked or unlocked based on input
+void drawLock(int lockNum, int x) 
+{
+  drawSquare(lockNum, x, 23);
+  if(getLockerPointer(lockNum).isLocked) 
+  {
+    display.fillRect(x+4, 12, 22, 11, SSD1306_WHITE);
+    display.fillRect(x+10, 17, 10, 6, SSD1306_BLACK);
+  }
+  else 
+  {
+    display.fillRect(x+4, 5, 22, 18, SSD1306_WHITE);
+    display.fillRect(x+10, 10, 10, 6, SSD1306_BLACK);
+    display.fillRect(x+10, 16, 16, 7, SSD1306_BLACK);
+  }
+  display.display();
+}
+
+//Draws main menu with three locks
+void drawMainMenu() 
+{
+  display.clearDisplay();
+
+  drawLock(1, 9);
+  drawLock(2, 49);
+  drawLock(3, 89);
+}
+
+//Draws menu where user can select input methods
+void drawUnlockedMenu(int num) 
+{
+  display.clearDisplay();
+
+  drawSquare(num, 12, 5);
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(60, 5);
+  display.write("X");
+
+  display.setCursor(70, 5);
+  display.write("1:Timer");
+
+  display.setCursor(60, 22);
+  display.write("X");  
+
+  display.setCursor(70, 22);
+  display.write("2:Code");
+
+  display.setCursor(60, 39);
+  display.write("X");
+
+  display.setCursor(70, 39);
+  display.write("3:RFID");
+
+  display.setCursor(60, 56);
+  display.write("X");
+
+  display.setCursor(70, 56);
+  display.write("4:FPrint");
+
+  display.setCursor(10, 39);
+  display.write("#:Lock");
+
+  display.setCursor(10, 56);
+  display.write("*:Back");
+
+  display.display();
+}
+
+//Draws either a O or X for the line given, O if true, X if false
+void addChecks(int line, bool isOff) 
+{
+  display.setTextSize(1);
+  display.cp437(true);
+
+  display.setTextColor(SSD1306_BLACK);
+
+  if(isOff) 
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);    
+        display.write("X");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("X");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("X");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("X");
+        break;
+
+      default:
+        break;
+    }
+  }
+  else
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);
+        display.write("O");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("O");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("O");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("O");
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  display.setTextColor(SSD1306_WHITE);
+
+  if(isOff)
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);
+        display.write("O");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("O");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("O");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("O");
+        break;
+
+      default:
+        break;
+    }
+  }
+  else
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);    
+        display.write("X");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("X");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("X");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("X");
+        break;
+
+      default:
+        break;
+    }
+  }
+  display.display();
+}
+
+//Draws menu where user inputs timer length
+void drawTimerMenu() 
+{
+  display.clearDisplay();
+
+  display.setTextSize(3);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(1, 20);
+  display.write("__");
+
+  display.setCursor(display.getCursorX(), 15);
+  display.write("h:");
+
+  display.setCursor(display.getCursorX(), 20);
+  display.write("__");
+
+  display.setCursor(display.getCursorX(), 15);
+  display.write("m");
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.setCursor(75, 55);
+  display.write("#:Submit");
+
+  //remove later
+  // display.setTextSize(3);
+  // display.setCursor(1, 15);
+  // display.write("12  34");
+
+  display.display();
+}
+
+//Draws menu where user inputs passcode
+void drawPasscodeMenu() 
+{
+  display.clearDisplay();
+
+  display.setTextSize(3);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(30, 20);
+  display.write("____");
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.setCursor(75, 55);
+  display.write("#:Submit");
+
+  //remove later
+  // display.setTextSize(3);
+  // display.setCursor(30, 15);
+  // display.write("1234");
+
+  display.display();
+}
+
+//Draws menu where user is prompted to scan thir RFID tag
+void drawRFIDMenu() 
+{
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(10, 20);
+  display.write("Scan RFID");
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.display();
+}
+
+//Draws screen where user is initially prompted to scan their finger
+void drawFingerprintMenu() 
+{
+  display.clearDisplay();
+
+  display.setTextSize(1,2);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(30, 10);
+  display.write("Place Finger");
+
+  display.setCursor(35, 30);
+  display.write("On Scanner");
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.display();
+}
+
+//Draws screen where user is prompted to remove their finger
+void drawFingerprintRemoveMenu() 
+{
+  display.clearDisplay();
+
+  display.setTextSize(1,2);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(25, 10);
+  display.write("Remove Finger");
+
+  display.setCursor(28, 30);
+  display.write("From Scanner");
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.display();
+}
+
+//Draws screen where user is prompted to re-place their finger on the scanner
+void drawFingerprintRetryMenu() 
+{
+  display.clearDisplay();
+
+  display.setTextSize(1,2);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(20, 10);
+  display.write("Re-Place Finger");
+
+  display.setCursor(35, 30);
+  display.write("On Scanner");
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.display();
+}
+
+//Draws menu where user can see compartment timer and choose to manually unlock
+void drawViewMenu(int num) 
+{
+  display.clearDisplay();
+
+  drawSquare(num, 5, 10);
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.setCursor(75, 55);
+  display.write("#:Unlock");
+
+  display.display();
+}
+
+//Draws timer on the ViewMenu screen, in the format _ _ h : _ _ m, writes "No Timer" if disabled
+void drawTimer(int num) 
+{
+  if(!(getLockerPointer(num).usingTimer))
+  {
+    display.setTextSize(1);
+    display.setCursor(58, 21);
+    display.write("No Timer");
+    return;
+  }
+  uint32_t time = millis();
+
+  unsigned long seconds = (getLockerPointer(num).unlockTime-time)/1000;
+  unsigned long minute = (seconds/60)%60;
+  unsigned long hour = (seconds/3600)%100;
+
+  String hours = String(hour);
+  String minutes = String(minute);
+
+  display.fillRect(40, 18, 86, 15, SSD1306_BLACK);
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(2);
+  display.setCursor(40, 18);
+  
+  if(hour<10) 
+  {
+    display.write("0");
+  }
+  display.write(hours.c_str());
+  display.write("h:");
+
+  if(minute<10) 
+  {
+    display.write("0");
+  }
+  display.write(minutes.c_str());
+  display.write("m");
+
+  display.display();
+
+}
 

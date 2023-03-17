@@ -44,29 +44,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
   &SPI, OLED_DC, OLED_RESET, OLED_CS);
 
-
-#define NUMFLAKES     10 // Number of snowflakes in the animation example
-
-#define LOGO_HEIGHT   16
-#define LOGO_WIDTH    16
-static const unsigned char PROGMEM logo_bmp[] =
-{ 0b00000000, 0b11000000,
-  0b00000001, 0b11000000,
-  0b00000001, 0b11000000,
-  0b00000011, 0b11100000,
-  0b11110011, 0b11100000,
-  0b11111110, 0b11111000,
-  0b01111110, 0b11111111,
-  0b00110011, 0b10011111,
-  0b00011111, 0b11111100,
-  0b00001101, 0b01110000,
-  0b00011011, 0b10100000,
-  0b00111111, 0b11100000,
-  0b00111111, 0b11110000,
-  0b01111100, 0b11110000,
-  0b01110000, 0b01110000,
-  0b00000000, 0b00110000 };
-
   int door1locked = false;
   int door2locked = false;
   int door3locked = false;
@@ -110,7 +87,7 @@ void setup() {
   delay(5000);
   drawFingerprintRetryMenu();
   delay(5000);*/
-  drawViewMenu('1');
+  drawViewMenu(1);
 
 }
 
@@ -142,7 +119,7 @@ unsigned long getTimer(char num) {
 
 }
 
-void redrawViewMenu(char num) {
+void redrawViewMenu(int num) {
   unsigned long seconds = (getTimer(num)-millis())/1000;
   unsigned long minute = (seconds/60)%60;
   unsigned long hour = (seconds/3600)%100;
@@ -154,34 +131,35 @@ void redrawViewMenu(char num) {
 
   display.setTextColor(SSD1306_WHITE);
   display.cp437(true);
-  display.setTextSize(2);
-  display.setCursor(40, 18);
+  display.setTextSize(1);
+  display.setCursor(58, 21);
+  display.write("No Timer");
   
-  if(hour<10) {
-    display.write("0");
-    display.write(hours.c_str());
-    display.write("h:");
-  }
-  else {
-    display.write(hours.c_str());
-    display.write("h:");
-  }
+  // if(hour<10) {
+  //   display.write("0");
+  //   display.write(hours.c_str());
+  //   display.write("h:");
+  // }
+  // else {
+  //   display.write(hours.c_str());
+  //   display.write("h:");
+  // }
 
-  if(minute<10) {
-    display.write("0");
-    display.write(minutes.c_str());
-    display.write("m");
-  }
-  else {
-    display.write(minutes.c_str());
-    display.write("m");
-  }
+  // if(minute<10) {
+  //   display.write("0");
+  //   display.write(minutes.c_str());
+  //   display.write("m");
+  // }
+  // else {
+  //   display.write(minutes.c_str());
+  //   display.write("m");
+  // }
 
   display.display();
 
 }
 
-void drawViewMenu(char num) {
+void drawViewMenu(int num) {
   display.clearDisplay();
 
   unsigned long seconds = (getTimer(num)-millis())/1000;
@@ -330,9 +308,9 @@ void drawPasscodeMenu() {
   display.write("#:Submit");
 
   //remove later
-  display.setTextSize(3);
-  display.setCursor(30, 15);
-  display.write("1234");
+  // display.setTextSize(3);
+  // display.setCursor(30, 15);
+  // display.write("1234");
 
   display.display();
 }
@@ -365,14 +343,14 @@ void drawTimerMenu() {
   display.write("#:Submit");
 
   //remove later
-  display.setTextSize(3);
-  display.setCursor(1, 15);
-  display.write("12  34");
+  // display.setTextSize(3);
+  // display.setCursor(1, 15);
+  // display.write("12  34");
 
   display.display();
 }
 
-void drawUnlockedMenu(char num) {
+void drawUnlockedMenu(int num) {
   display.clearDisplay();
 
   drawSquare(num, 12, 5);
@@ -381,14 +359,26 @@ void drawUnlockedMenu(char num) {
   display.setTextColor(SSD1306_WHITE);
   display.cp437(true);
 
+  display.setCursor(60, 5);
+  display.write("X");
+
   display.setCursor(70, 5);
   display.write("1:Timer");
+
+  display.setCursor(60, 22);
+  display.write("X");  
 
   display.setCursor(70, 22);
   display.write("2:Code");
 
+  display.setCursor(60, 39);
+  display.write("X");
+
   display.setCursor(70, 39);
   display.write("3:RFID");
+
+  display.setCursor(60, 56);
+  display.write("X");
 
   display.setCursor(70, 56);
   display.write("4:FPrint");
@@ -402,7 +392,132 @@ void drawUnlockedMenu(char num) {
   display.display();
 }
 
-void drawSquare(char num, int x, int y) {
+void addChecks(int line, bool isOff) {
+  display.setTextSize(1);
+  display.cp437(true);
+
+  display.setTextColor(SSD1306_BLACK);
+
+  if(isOff) 
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);    
+        display.write("X");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("X");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("X");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("X");
+        break;
+
+      default:
+        break;
+    }
+  }
+  else
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);
+        display.write("O");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("O");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("O");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("O");
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  display.setTextColor(SSD1306_WHITE);
+
+  if(isOff)
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);
+        display.write("O");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("O");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("O");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("O");
+        break;
+
+      default:
+        break;
+    }
+  }
+  else
+  {
+    switch(line)
+    {
+      case 1:
+        display.setCursor(60, 5);    
+        display.write("X");
+        break;
+
+      case 2:
+        display.setCursor(60, 22);
+        display.write("X");
+        break;
+
+      case 3:
+        display.setCursor(60, 39);
+        display.write("X");
+        break;
+
+      case 4:
+        display.setCursor(60, 56);
+        display.write("X");
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  display.display();
+}
+
+void drawSquare(int num, int x, int y) {
   display.fillRect(x, y, 30, 30, SSD1306_WHITE);
 
   display.setTextSize(3);
@@ -410,12 +525,12 @@ void drawSquare(char num, int x, int y) {
   display.cp437(true);
 
   display.setCursor(x+8, y+4);
-  display.write(num);
+  display.write(String(num).c_str());
 
   display.display();
 }
 
-void drawLock(char lockNum, bool locked, int x) {
+void drawLock(int lockNum, bool locked, int x) {
   drawSquare(lockNum, x, 23);
   if(locked) {
     display.fillRect(x+4, 12, 22, 11, SSD1306_WHITE);
