@@ -71,7 +71,7 @@ static const unsigned char PROGMEM logo_bmp[] =
   int door2locked = false;
   int door3locked = false;
 
-  unsigned long timer1end;
+  unsigned long timer1end = 100000;
   unsigned long timer2end;
   unsigned long timer3end;
 
@@ -95,24 +95,30 @@ void setup() {
   display.clearDisplay();
 
   /*drawMainMenu();
-  delay(2000);
+  delay(5000);
   drawUnlockedMenu('1');
-  delay(2000);
+  delay(5000);
   drawTimerMenu();
-  delay(2000);
+  delay(5000);
   drawPasscodeMenu();
-  delay(2000);
+  delay(5000);
   drawRFIDMenu();
-  delay(2000);
+  delay(5000);
   drawFingerprintMenu();
-  delay(2000);
-  drawFingerprintRetryMenu();*/
-  timer1end = (unsigned long)10000;
+  delay(5000);
+  drawFingerprintRemoveMenu();
+  delay(5000);
+  drawFingerprintRetryMenu();
+  delay(5000);*/
+  drawFingerprintRetryMenu();
+  delay(99000);
+
 }
 
 void loop() {
-  //unsigned long currentMillis = millis();
-  //drawViewMenu('1',currentMillis);
+  if((millis()%1000) == 0) {
+    drawViewMenu('1');
+  }
 }
 
 unsigned long getTimer(char num) {
@@ -137,17 +143,51 @@ unsigned long getTimer(char num) {
 
 }
 
-void drawViewMenu(char num, unsigned long currTime) {
+void drawViewMenu(char num) {
   display.clearDisplay();
-  
-  unsigned long timer = getTimer(num)-millis();
 
-  display.setTextSize(1);
+  unsigned long seconds = (getTimer(num)-millis())/1000;
+  unsigned long minute = (seconds/60)%60;
+  unsigned long hour = (seconds/3600)%100;
+
+  String hours = String(hour);
+  String minutes = String(minute);
+
+  drawSquare(num, 5, 10);
+
   display.setTextColor(SSD1306_WHITE);
   display.cp437(true);
 
+  display.setTextSize(1);
+
   display.setCursor(5, 55);
-  display.write(timer);
+  display.write("*:Back");
+
+  display.setCursor(75, 55);
+  display.write("#:Unlock");
+
+  display.setTextSize(2);
+  display.setCursor(40, 18);
+  
+  if(hour<10) {
+    display.write("0");
+    display.write(hours.c_str());
+    display.write("h:");
+  }
+  else {
+    display.write(hours.c_str());
+    display.write("h:");
+  }
+
+  if(minute<10) {
+    display.write("0");
+    display.write(minutes.c_str());
+    display.write("m");
+  }
+  else {
+    display.write(minutes.c_str());
+    display.write("m");
+  }
 
   display.display();
 }
@@ -159,11 +199,32 @@ void drawFingerprintRetryMenu() {
   display.setTextColor(SSD1306_WHITE);
   display.cp437(true);
 
-  display.setCursor(15, 10);
-  display.write("Scan Fingerprint");
+  display.setCursor(20, 10);
+  display.write("Re-Place Finger");
 
-  display.setCursor(50, 30);
-  display.write("Again");
+  display.setCursor(35, 30);
+  display.write("On Scanner");
+
+  display.setTextSize(1);
+
+  display.setCursor(5, 55);
+  display.write("*:Back");
+
+  display.display();
+}
+
+void drawFingerprintRemoveMenu() {
+  display.clearDisplay();
+
+  display.setTextSize(1,2);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(25, 10);
+  display.write("Remove Finger");
+
+  display.setCursor(28, 30);
+  display.write("From Scanner");
 
   display.setTextSize(1);
 
@@ -180,8 +241,11 @@ void drawFingerprintMenu() {
   display.setTextColor(SSD1306_WHITE);
   display.cp437(true);
 
-  display.setCursor(15, 20);
-  display.write("Scan Fingerprint");
+  display.setCursor(30, 10);
+  display.write("Place Finger");
+
+  display.setCursor(35, 30);
+  display.write("On Scanner");
 
   display.setTextSize(1);
 
