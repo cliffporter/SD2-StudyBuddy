@@ -87,14 +87,16 @@ void setup() {
   delay(5000);
   drawFingerprintRetryMenu();
   delay(5000);*/
-  drawViewMenu(1);
+  drawUnlockedMenu(1);
+  delay(2000);
+  drawLockOption(true);
 
 }
 
 void loop() {
-  if((millis()%1000) == 0) {
-    redrawViewMenu('1');
-  }
+  // if((millis()%1000) == 0) {
+  //   redrawViewMenu('1');
+  // }
 }
 
 unsigned long getTimer(char num) {
@@ -350,6 +352,21 @@ void drawTimerMenu() {
   display.display();
 }
 
+void drawLockOption(bool isOff) {
+  if(isOff)
+  {
+    display.setTextColor(SSD1306_WHITE);
+  }
+  else
+  {
+    display.setTextColor(SSD1306_BLACK);
+  }
+  display.setCursor(10, 39);
+  display.write("#:Lock");
+
+  display.display();
+}
+
 void drawUnlockedMenu(int num) {
   display.clearDisplay();
 
@@ -383,8 +400,8 @@ void drawUnlockedMenu(int num) {
   display.setCursor(70, 56);
   display.write("4:FPrint");
 
-  display.setCursor(10, 39);
-  display.write("#:Lock");
+  // display.setCursor(10, 39);
+  // display.write("#:Lock");
 
   display.setCursor(10, 56);
   display.write("*:Back");

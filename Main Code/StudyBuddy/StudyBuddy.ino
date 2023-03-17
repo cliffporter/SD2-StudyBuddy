@@ -858,11 +858,25 @@ void drawUnlockedMenu(int num)
   display.setCursor(70, 56);
   display.write("4:FPrint");
 
-  display.setCursor(10, 39);
-  display.write("#:Lock");
-
   display.setCursor(10, 56);
   display.write("*:Back");
+
+  display.display();
+}
+
+//If true, draw Lock option on the configuration screen, otherwise remove it
+void drawLockOption(bool isOff) 
+{
+  if(isOff)
+  {
+    display.setTextColor(SSD1306_WHITE);
+  }
+  else
+  {
+    display.setTextColor(SSD1306_BLACK);
+  }
+  display.setCursor(10, 39);
+  display.write("#:Lock");
 
   display.display();
 }
