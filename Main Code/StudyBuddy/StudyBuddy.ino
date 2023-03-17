@@ -21,7 +21,7 @@
 
 #define RFID_CS             11 
 #define RFID_RST            10              
-MFRC522 rfid(RFID_CS, RFID_RST);     // Create MFRC522 instance
+MFRC522 rfid(RFID_CS, RFID_RST);
 
 #define SERVO_1             9
 #define SERVO_2             7
@@ -41,7 +41,6 @@ char keymap[KEYPAD_COLS][KEYPAD_ROWS] = {
     {'6', '5', '4'},
     {'3', '2', '1'},
 };
-
 
 
 //Globals
@@ -70,9 +69,6 @@ byte lastRFIDTag[10];
 char enteredPin[5];
 int pinIndex; 
 
-
-//junk test globals
-long nextPrint;
 
 void setup() 
 {
@@ -113,6 +109,8 @@ void setup()
   tio.pinMode(REED_3, INPUT_PULLUP);
   keypad.flush();
 
+  //pinMode(A1, INPUT);
+
 
   //Globals init
   pinIndex = 0;
@@ -126,17 +124,13 @@ void setup()
   servoLock(3);
 
   //Test unlocking
-  byte card[] = RFID_CARD;
-  startLock(2, -1, card, NULL, -1);
-  Serial.println("Locker #2 locked with card");
+  byte tag[] = RFID_TAG;
+  startLock(2, -1, tag, NULL, -1);
+  Serial.println("Locker #2 locked with tag");
 
   startLock(1, 10, NULL, NULL, -1);
   Serial.println("Unlocking #1 in 10s");
-
-  nextPrint = millis()+2000;
 }
-
-
 
 void loop() 
 {
@@ -148,12 +142,6 @@ void loop()
   char pressed = checkKeypad();
   pinBuilder(pressed);
 
-  //report reed switches
-  if(false && millis() >= nextPrint)
-  {
-    Serial.printf("Reed 1: %d\tReed 2: %d\tReed 3: %d\n", getReed(1),getReed(2),getReed(3));
-    nextPrint = millis()+2000;
-  }
 }
 
 /*--------------------------------------------*/
@@ -506,13 +494,6 @@ void printBinLZ(int n)
 }
 
 
-/*---------------------------------------------------*/
-/*---------------FINGERPRINT FUNCTIONS---------------*/
-/*---------------------------------------------------*/
-
-
-
-
 /*--------------------------------------------------*/
 /*---------------MENU/INPUT FUNCTIONS---------------*/
 /*--------------------------------------------------*/
@@ -536,3 +517,13 @@ int pinBuilder(char c)
 
   return 0;
 }
+
+
+/*---------------------------------------------------*/
+/*---------------FINGERPRINT FUNCTIONS---------------*/
+/*---------------------------------------------------*/
+
+
+
+
+
