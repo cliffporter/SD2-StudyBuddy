@@ -110,14 +110,13 @@ void setup() {
   delay(5000);
   drawFingerprintRetryMenu();
   delay(5000);*/
-  drawFingerprintRetryMenu();
-  delay(99000);
+  drawViewMenu('1');
 
 }
 
 void loop() {
   if((millis()%1000) == 0) {
-    drawViewMenu('1');
+    redrawViewMenu('1');
   }
 }
 
@@ -140,6 +139,45 @@ unsigned long getTimer(char num) {
       return (unsigned long)0;
       break;
   }
+
+}
+
+void redrawViewMenu(char num) {
+  unsigned long seconds = (getTimer(num)-millis())/1000;
+  unsigned long minute = (seconds/60)%60;
+  unsigned long hour = (seconds/3600)%100;
+
+  String hours = String(hour);
+  String minutes = String(minute);
+
+  display.fillRect(40, 18, 86, 15, SSD1306_BLACK);
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(2);
+  display.setCursor(40, 18);
+  
+  if(hour<10) {
+    display.write("0");
+    display.write(hours.c_str());
+    display.write("h:");
+  }
+  else {
+    display.write(hours.c_str());
+    display.write("h:");
+  }
+
+  if(minute<10) {
+    display.write("0");
+    display.write(minutes.c_str());
+    display.write("m");
+  }
+  else {
+    display.write(minutes.c_str());
+    display.write("m");
+  }
+
+  display.display();
 
 }
 
