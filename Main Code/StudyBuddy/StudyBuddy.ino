@@ -5,26 +5,27 @@
 #include <Adafruit_Fingerprint.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
+#include <string>
 #include <Adafruit_SSD1306.h>
 
 
 //Paramaters
-#define RFID_RESCAN_DELAY 1000
-#define RFID_SCAN_DELAY 200
-#define RFID_TAG {0x93, 0xFE, 0xCF, 0x1D}
-#define RFID_CARD {0x73, 0x9B, 0x17, 0x94}
-#define SERVO_UNLOCK_POSITION 180
-#define SERVO_LOCK_POSITION 0
-#define KEYPAD_ROWS 3
-#define KEYPAD_COLS 4
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define RFID_RESCAN_DELAY       1000
+#define RFID_SCAN_DELAY         200
+#define RFID_TAG                {0x93, 0xFE, 0xCF, 0x1D}
+#define RFID_CARD               {0x73, 0x9B, 0x17, 0x94}
+#define SERVO_UNLOCK_POSITION   180
+#define SERVO_LOCK_POSITION     0
+
+
 
 //Peripheral assignment
 //(using hardware I2C, SPI, UART)
-#define OLED_DC     12
-#define OLED_CS     13
-#define OLED_RESET  2
+#define OLED_DC             12
+#define OLED_CS             13
+#define OLED_RESET          2
+#define SCREEN_WIDTH        128
+#define SCREEN_HEIGHT       64
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
   &SPI, OLED_DC, OLED_RESET, OLED_CS);
 
@@ -45,6 +46,10 @@ Servo servo3;
 #define REED_1              5
 #define REED_2              6
 #define REED_3              7
+
+
+#define KEYPAD_ROWS         3
+#define KEYPAD_COLS         4
 Adafruit_TCA8418 tio;
 Adafruit_TCA8418 keypad;
 char keymap[KEYPAD_COLS][KEYPAD_ROWS] = {
@@ -81,6 +86,10 @@ byte lastRFIDTag[10];
 char enteredPin[5];
 int pinIndex; 
 
+//State vars
+int currentState;
+Compartment * currentComp;
+
 
 void setup() 
 {
@@ -101,8 +110,9 @@ void setup()
 
   //RFID setup
   rfid.PCD_Init();	
-	delay(4);				// Optional delay. Some board do need more time after init to be ready, see RFID lib Readme
-	rfid.PCD_DumpVersionToSerial();
+	delay(4);			
+	Serial.print("RFID "); //RFID Firmware Version: 0x92 = v2.0
+  rfid.PCD_DumpVersionToSerial();
 
   //Servos
   servo1.attach(SERVO_1);
@@ -144,31 +154,77 @@ void setup()
 
 
   //Lock servos (remove later)
-  servoLock(1);
-  delay(1000);
-  servoLock(2);
-  delay(1000);
-  servoLock(3);
+  // servoLock(1);
+  // delay(1000);
+  // servoLock(2);
+  // delay(1000);
+  // servoLock(3);
 
   //Test unlocking
-  byte tag[] = RFID_TAG;
-  startLock(2, -1, tag, NULL, -1);
-  Serial.println("Locker #2 locked with tag");
+  //byte tag[] = RFID_TAG;
+  //startLock(2, -1, tag, NULL, -1);
+  //Serial.println("Locker #2 locked with tag");
 
   //startLock(1, 10, NULL, NULL, -1);
   //Serial.println("Unlocking #1 in 10s");
+
+  //main drawViewMenu
+  currentState=0;
+
+  byte tag[] = RFID_TAG;
+  char  pin[5] = {'1','2','3','4','\0'};
+  startLock(1, -1, tag, pin, -1);
 }
 
 void loop() 
 {
-  //Check for unlocking conditions
-  checkTimeUp();
-  scanRFID();
-
-  //pin
-  char pressed = checkKeypad();
-  pinBuilder(pressed);
-
+  switch(currentState)
+  {
+    case 0: {
+      mainMenu();
+      break;
+    }
+    case 1: {
+      viewLockedMenu();
+      break;
+    }
+    case 2: {
+      viewUnlockedMenu();
+      break;
+    }
+    case 3: {
+      promptPinChallenge();
+      break;
+    }
+    case 4: {
+      promptRFIDChallenge();
+      break;
+    }
+    case 5: {
+      promptFingerChallenge();
+      break;
+    }
+    case 6: {
+      //promptTimeEntry();
+      break;
+    }
+    case 7: {
+      //promptPinEntry();
+      break;
+    }
+    case 8: {
+      //promptRFIDEntry();
+      break;
+    }
+    case 9: {
+      //promptFPEntry();
+      break;
+    }
+    case 10: {
+      //settingsMenu();
+      break;
+    }
+  }
 }
 
 /*--------------------------------------------*/
@@ -218,9 +274,9 @@ byte * scanRFID()
   lastRFIDScan = millis();
 
   //Check if this RFID tag is registered to a locker
-  int lockerNum = checkForRegisteredRFID(scanned);
-  if(lockerNum > 0)
-    unlock(lockerNum);
+  // int lockerNum = checkForRegisteredRFID(scanned);
+  // if(lockerNum > 0)
+  //   unlock(lockerNum);
 
   return scanned;
 }
@@ -282,6 +338,7 @@ void startLock(int lockerNumber, int seconds, byte * rfidTag, char * pin, int fp
   
   if(comp->usingTimer || comp->usingRFID || comp->usingPin || comp->usingFP)
   {
+    comp->isLocked = true;
     servoLock(lockerNumber);
   }
 }
@@ -524,8 +581,291 @@ void printBinLZ(int n)
 
 
 /*--------------------------------------------------*/
-/*------------------INPUT FUNCTIONS-----------------*/
+/*-------------------MENU FUNCTIONS-----------------*/
 /*--------------------------------------------------*/
+
+void mainMenu()
+{
+  Serial.println("MainMenu");
+  drawMainMenu();
+  char key;
+
+  if ( currentComp!=NULL )
+  {
+    currentComp = NULL;
+  }
+
+  while(1)
+  {
+    checkTimeUp();
+    key = checkKeypad();
+
+    if(key != 0 && (key=='1' || key=='2' || key=='3'))
+    {
+      //Serial.println("key is 123");
+      int currentLockerNum = key-48;
+      currentComp = getLockerPointer(currentLockerNum);
+
+      if(currentComp->isLocked) 
+      {
+        //Serial.println("locked");
+        //viewLockedMenu();
+        currentState = 1;
+        return;
+      }
+      else
+      {
+        //Serial.println("isntlocked");
+        //viewUnlockedMenu(comp);
+        currentState = 2;
+        return;
+      }
+    }
+  }
+}
+
+void viewLockedMenu()
+{
+  Serial.println("ViewLockedMenu");
+  int lockerNum = currentComp->number;
+  drawViewMenu(lockerNum);
+  char key;
+
+  long timerLastUpdated = millis();
+  while(1)
+  {
+    key = checkKeypad();
+    checkTimeUp();
+    if (currentComp->isLocked == false)
+    {
+      //viewUnlockedMenu
+      currentState = 2;
+      return;
+    }
+    
+    if( key=='*' )
+    {
+      //main menu
+      currentState = 0;
+      return;
+    }
+
+    //Update the clock on the display every 1s
+    if( millis()-timerLastUpdated >= 1000)
+    {
+      drawTimer(lockerNum);
+      timerLastUpdated = millis();
+    }
+    
+    if( key=='#') //#: Unlock
+    {
+      //promptPinChallenge
+      currentState = 3;
+      return;
+    }
+  }  
+}
+
+void promptPinChallenge()
+{
+  Serial.println("PromptPinChallenge");
+  if(currentComp->usingPin)
+  {
+    drawPasscodeMenu();
+    
+    while(1)
+    {
+      char key = checkKeypad();
+      checkTimeUp();
+
+      if( currentComp->isLocked==false )
+      {
+        //mainMenu
+        currentState = 0;
+        return;
+      }
+
+      if(key == '*')
+      {
+        clearPin();
+        //viewlockedmenu
+        currentState = 1;
+        return;
+      }
+
+      //make pin
+      if(key!=0 )
+      {
+        pinBuilder(key);
+        updatePasscode();
+      }
+      
+      if(key=='#')
+      {
+        char * correctPin = currentComp->pin;
+        //compare
+        for(int i=0; i<4; i++)
+        {
+          //Serial.printf("i: %d ent: %c cor: %c\n", i, enteredPin[i], correctPin[i]);
+          if(enteredPin[i]!=correctPin[i]) // wrong pin
+          {
+            Serial.println("Incorrect Pin!");
+            //viewLockedMenu
+            currentState = 1;
+            clearPin();
+            return;
+          }
+        }
+        Serial.println("Correct Pin :)");
+        clearPin();
+        //promptRFIDChallenge
+        currentState = 4;
+        return;
+      }
+    }
+  }
+  else //not using pin, skip
+  {
+    //promptRFIDChallenge
+    currentState = 4;
+    return;
+  }
+}
+
+void promptRFIDChallenge()
+{
+  if(currentComp->usingRFID)
+  {
+    Serial.println("PromptRFIDChallenge");
+    drawRFIDMenu();
+    
+    while(1)
+    {
+      char key = checkKeypad();
+      checkTimeUp();
+
+      if( currentComp->isLocked==false )
+      {
+        //mainMenu
+        currentState = 0;
+        return;
+      }
+
+      if(key == '*')
+      {
+        clearPin();
+        //viewlockedmenu
+        currentState = 1;
+        return;
+      }
+
+      byte * tag = scanRFID();
+
+      // if( tag != NULL)
+      // {
+      //   printByteAr(tag);
+      //   printByteAr(currentComp->authTag);
+      // }
+
+      if( tag!=NULL && memcmp(tag, currentComp->authTag, sizeof(tag)) == 0 )
+      {
+        Serial.println("Correct tag :)");
+        //promptFingerChallenge
+        currentState = 5;
+        return;
+      }
+      else if ( tag!=NULL )
+      {
+        Serial.println("Wrong tag >:(");
+        //viewLockedMenu
+        currentState = 1;
+        return;
+      }
+    }
+  }
+  else //not using rfid, skip
+  {
+    //promptFingerChallenge
+    currentState = 5;
+    return;
+  }
+}
+
+void promptFingerChallenge()
+{
+  if(currentComp->usingFP)
+  {
+    Serial.println("PromptFingerPrintChallenge");
+    drawFingerprintMenu();
+    int lastResult = -10;
+
+    while(1)
+    {
+      char key = checkKeypad();
+      checkTimeUp();
+      if( currentComp->isLocked==false )
+      {
+        //mainMenu
+        currentState = 0;
+        return;
+      }
+
+      if(key == '*')
+      {
+        clearPin();
+        //viewlockedmenu
+        currentState = 1;
+        return;
+      }
+
+      int result = getFingerprintID();
+      //-2,0 remove prompt, try again
+      //-1 ignore, continue
+      //0 start enroll
+      //1 procede to unlock
+
+      if( result==-2 )
+      {
+        drawFingerprintRemoveMenu();
+      }
+      else if ( result==-1 && (lastResult==-2) )
+      {
+        drawFingerprintRetryMenu();
+      }
+      else if ( result>=0 )
+      {
+        //check that the id matches
+        if(result == currentComp->fpNum)
+        {
+          //unlock steps
+          unlock(currentComp->number);
+          //mainMenu
+          currentState = 0;
+          return;
+        }
+        else
+        {
+          Serial.println("Wrong finger >:(");
+          //viewLockedMenu
+          currentState = 1;
+          return;
+        }
+      }
+    }
+  }
+  else //not using finger print, skip
+  {
+    unlock(currentComp->number);
+    //mainMenu
+    currentState = 0;
+    return;
+  }
+}
+
+void viewUnlockedMenu()
+{
+
+}
 
 //Add a character to the pin.
 //returns 1 if pin is now complete, 0 otherwise 
@@ -533,18 +873,23 @@ int pinBuilder(char c)
 {
   if( pinIndex < 4 && c != 0)
   {
-    enteredPin[pinIndex++] = c;
+    enteredPin[pinIndex] = c;
+    pinIndex++;
     //Serial.println(enteredPin);
   }
-  else if (pinIndex == 4)
+  if (pinIndex == 4)
   {
     Serial.print("Full pin: ");
     Serial.println(enteredPin);
-    pinIndex = 0;
     return 1;
   }
-
   return 0;
+}
+
+void clearPin()
+{
+    memset(enteredPin, 0, sizeof(enteredPin));
+    pinIndex = 0;
 }
 
 
@@ -562,7 +907,7 @@ int getFingerprintID()
       Serial.println("Image taken");
       break;
     case FINGERPRINT_NOFINGER:
-      Serial.println("No finger detected");
+      //Serial.println("No finger detected");
       return -1;
     case FINGERPRINT_PACKETRECIEVEERR:
       Serial.println("Communication error");
@@ -779,9 +1124,9 @@ int getFingerprintEnroll(int id)
   return 1;
 }
 
-/*--------------------------------------------------*/
-/*-------------------MENU FUNCTIONS-----------------*/
-/*--------------------------------------------------*/
+/*-----------------------------------------------------*/
+/*-------------------DISPLAY FUNCTIONS-----------------*/
+/*-----------------------------------------------------*/
 
 //Draws a square with the compartment numer in it
 void drawSquare(int num, int x, int y) 
@@ -802,7 +1147,7 @@ void drawSquare(int num, int x, int y)
 void drawLock(int lockNum, int x) 
 {
   drawSquare(lockNum, x, 23);
-  if(getLockerPointer(lockNum).isLocked) 
+  if(getLockerPointer(lockNum)->isLocked) 
   {
     display.fillRect(x+4, 12, 22, 11, SSD1306_WHITE);
     display.fillRect(x+10, 17, 10, 6, SSD1306_BLACK);
@@ -1075,6 +1420,14 @@ void drawPasscodeMenu()
   display.display();
 }
 
+//Update the pin display using enteredPin
+void updatePasscode()
+{
+  display.setTextSize(3);
+  display.setCursor(30, 15);
+  display.write(enteredPin);
+  display.display();
+}
 //Draws menu where user is prompted to scan thir RFID tag
 void drawRFIDMenu() 
 {
@@ -1188,7 +1541,7 @@ void drawViewMenu(int num)
 //Draws timer on the ViewMenu screen, in the format _ _ h : _ _ m, writes "No Timer" if disabled
 void drawTimer(int num) 
 {
-  if(!(getLockerPointer(num).usingTimer))
+  if(!(getLockerPointer(num)->usingTimer))
   {
     display.setTextSize(1);
     display.setCursor(58, 21);
@@ -1197,7 +1550,7 @@ void drawTimer(int num)
   }
   uint32_t time = millis();
 
-  unsigned long seconds = (getLockerPointer(num).unlockTime-time)/1000;
+  unsigned long seconds = (getLockerPointer(num)->unlockTime-time)/1000;
   unsigned long minute = (seconds/60)%60;
   unsigned long hour = (seconds/3600)%100;
 
