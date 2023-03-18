@@ -1,0 +1,29 @@
+code:
+-BLE tests
+-getKeyPadInput()
+-getReadSwitch(num)
+-menuing stuff
+-display stuff
+-fingerprint stuff
+
+
+change RFID scan to clear the rfid lock field, not unlock
+
+--Scan for--
+Time -> unlock now
+RFID -> clear RFID conditon -> open menu for unlock
+Reed switches -> set flag
+Keypad/button -> perform menu function
+
+
+--Unlock menu--
+->user wants to unlock
+check for pin -> wait for entry
+check for RFID -> wait for scan
+check for FP -> wait for scan
+
+
+
+--Menu struct--
+screen number (main, locker status, unlock)
+
