@@ -6,6 +6,7 @@
 
 //Paramaters
 #define RFID_RESCAN_DELAY 1000
+#define RFID_SCAN_DELAY 200
 #define RFID_TAG {0x93, 0xFE, 0xCF, 0x1D}
 #define RFID_CARD {0x73, 0x9B, 0x17, 0x94}
 #define SERVO_UNLOCK_POSITION 180
@@ -128,8 +129,8 @@ void setup()
   startLock(2, -1, tag, NULL, -1);
   Serial.println("Locker #2 locked with tag");
 
-  startLock(1, 10, NULL, NULL, -1);
-  Serial.println("Unlocking #1 in 10s");
+  //startLock(1, 10, NULL, NULL, -1);
+  //Serial.println("Unlocking #1 in 10s");
 }
 
 void loop() 
@@ -152,13 +153,15 @@ void loop()
 //returns a pointer to the byte array containing its uid
 byte * scanRFID() 
 {
-  if ( ! rfid.PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
+  //dont overwhelm the sensor
+  if( millis()-lastRFIDScan < RFID_SCAN_DELAY )
     return NULL;
-  }
-  if ( ! rfid.PICC_ReadCardSerial()) {   //Since a PICC placed get Serial and continue
-    return NULL;
-  }
 
+  if ( ! rfid.PICC_IsNewCardPresent())  //If a new PICC placed to RFID reader continue
+    return NULL;
+  if ( ! rfid.PICC_ReadCardSerial())   //Since a PICC placed get Serial and continue
+    return NULL;
+  
   //A tag was found
   byte * scanned = rfid.uid.uidByte;
 
@@ -189,9 +192,9 @@ byte * scanRFID()
   lastRFIDScan = millis();
 
   //Check if this RFID tag is registered to a locker
-  // int lockerNum = checkForRegisteredRFID(scanned);
-  // if(lockerNum > 0)
-  //   unlock(lockerNum);
+  int lockerNum = checkForRegisteredRFID(scanned);
+  if(lockerNum > 0)
+    unlock(lockerNum);
 
   return scanned;
 }
