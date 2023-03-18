@@ -1,0 +1,25 @@
+0 -  mainMenu
+1 -  viewLockedMenu
+2 -  viewUnlockedMenu
+3 -  promptPinChallenge
+4 -  promptRFIDChallenge
+5 -  promptFingerChallenge
+6 -  promptTimeEntry
+7 -  promptPinEntry
+8 -  promptRFIDEntry
+9 -  promptFPEntry
+10 - settingsMenu
+
+
+--menus todo--
+>change passcode menu to say enter passcode
+-alert for early entry
+	-> display if early entry flag raised durring unlock (change unlocking to state)
+-alert for incorrect pin, rfid fingerprint 	drawIncorrectAlert(int type)
+	-> hanlder displays screen, waits and sends back to viewLockedMenu
+-settings menu
+	[O/X] enable phone call detection - press 4
+	[O/X] some other setting - press 5
+	early entries - #1: 2  #2: 1  #3: 0
+
+	* back to menu

@@ -173,7 +173,7 @@ void setup()
 
   byte tag[] = RFID_TAG;
   char  pin[5] = {'1','2','3','4','\0'};
-  startLock(1, -1, tag, pin, -1);
+  startLock(1, 300, tag, pin, -1);
 }
 
 void loop() 
@@ -629,6 +629,7 @@ void viewLockedMenu()
   Serial.println("ViewLockedMenu");
   int lockerNum = currentComp->number;
   drawViewMenu(lockerNum);
+  drawTimer(lockerNum);
   char key;
 
   long timerLastUpdated = millis();
@@ -711,7 +712,9 @@ void promptPinChallenge()
           {
             Serial.println("Incorrect Pin!");
             //viewLockedMenu
-            currentState = 1;
+            //currentState = 1;
+
+            //dont change state, redraw pin
             clearPin();
             return;
           }

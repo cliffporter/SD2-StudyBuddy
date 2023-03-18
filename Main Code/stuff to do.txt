@@ -1,0 +1,27 @@
+--status checks--
+✓ timers done
+- reed switches
+- status updates to remote
+- command from remote
+- vibration sensor checks
+
+--menuing/states--
+- start a lock (config menu)
+	- unlocked/configure  view
+	- time/pin/rfid/fp
+- change unlock to state
+- have pin clear when typing 5th number
+
+--globals--
+- save info about early entries
+- store vibe stats
+
+
+--save to flash?--
+- early entry stats
+
+
+--remote--
+- buttons
+- menuing
+- ble
