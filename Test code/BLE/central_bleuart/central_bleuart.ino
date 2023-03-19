@@ -18,9 +18,15 @@
  */
 #include <bluefruit.h>
 
+#include <Servo.h>
+
 BLEClientBas  clientBas;  // battery client
 BLEClientDis  clientDis;  // device information client
 BLEClientUart clientUart; // bleuart client
+
+#define KEEP_ON_DELAY 4000
+long lastServo;
+Servo servo;
 
 void setup()
 {
@@ -64,6 +70,9 @@ void setup()
   Bluefruit.Scanner.setInterval(160, 80); // in unit of 0.625 ms
   Bluefruit.Scanner.useActiveScan(false);
   Bluefruit.Scanner.start(0);                   // // 0 = Don't stop scanning after n seconds
+
+  lastServo = millis();
+  servo.attach(9);
 }
 
 /**
@@ -216,4 +225,12 @@ void loop()
       }
     }
   }
+
+  // if (millis()-lastServo >= KEEP_ON_DELAY)
+  // {
+  //   servo.write(120);
+  //   delay(333);
+  //   servo.write(30);
+  //   lastServo = millis();
+  // }
 }
