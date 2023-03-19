@@ -222,7 +222,7 @@ void loop()
       break;
     }
     case 10: {
-      //settingsMenu();
+      settingsMenu();
       break;
     }
   }
@@ -335,7 +335,7 @@ void startLock(int lockerNumber)
     Serial.println(comp->timerSeconds);
   }
   
-  if(comp->usingTimer || comp->usingRFID || comp->usingPin || comp->usingFP)
+  if((comp->usingTimer || comp->usingRFID || comp->usingPin || comp->usingFP) && !getReed(lockerNumber))
   {
     comp->isLocked = true;
     servoLock(lockerNumber);
@@ -391,7 +391,7 @@ void clearLocker(Compartment * c)
   c->usingFP = false;
   c->fpNum = -1;
 }
-//Check all compartments to see if their time is up, unlock if true
+//Check all compartments to see if their time is up, unlock if true. Also flip the tamper bit if compartment is locked and reed switch is open.
 void checkTimeUp()
 {
   uint32_t time = millis();
@@ -410,6 +410,21 @@ void checkTimeUp()
   {
     unlock(&locker3);
   }
+
+  if(locker1.isLocked && getReed(locker1.number) && !locker1.openedEarly)
+  {
+    locker1.openedEarly = true;
+  }
+
+  if(locker2.isLocked && getReed(locker2.number) && !locker2.openedEarly)
+  {
+    locker2.openedEarly = true;
+  }
+
+  if(locker3.isLocked && getReed(locker3.number) && !locker3.openedEarly)
+  {
+    locker3.openedEarly = true;
+  }
 }
 //Unlock a compartment, check for errors and clear its settings
 void unlock ( int lockerNumber )
@@ -421,6 +436,10 @@ void setLockTime(Compartment * c, int seconds)
 {
   c->usingTimer = true;
   c->timerSeconds = seconds;
+}
+void setTamper(Compartment * c)
+{
+  c->openedEarly = true;
 }
 void clearTimer(Compartment * c)
 {
@@ -645,6 +664,13 @@ void mainMenu()
         currentState = 2;
         return;
       }
+    }
+
+    if(key != 0 && key=='*')
+    {
+      //Settings menu
+      currentState = 10;
+      return;
     }
   }
 }
@@ -897,6 +923,8 @@ void viewUnlockedMenu()
   drawUnlockedMenu(lockerNum);
   char key;
 
+  int changeLine = getReed(lockerNum);
+
   while(1)
   {
     key = checkKeypad();
@@ -907,6 +935,13 @@ void viewUnlockedMenu()
       currentState = 1;
       return;
     }
+
+    if(changeLine != getReed(lockerNum))
+    {
+      changeLine = getReed(lockerNum);
+      drawExtraLine(lockerNum);
+    }
+
     
     if( key=='*' )
     {
@@ -980,9 +1015,9 @@ void viewUnlockedMenu()
       }
     }
 
-    if( key=='#' && (currentComp->usingTimer || currentComp->usingPin || currentComp->usingRFID || currentComp->usingFP))
+    if( key=='#' && (currentComp->usingTimer || currentComp->usingPin || currentComp->usingRFID || currentComp->usingFP) && !getReed(lockerNum))
     {
-      startLock(currentComp->number);
+      startLock(lockerNum);
 
       //Main menu
       currentState = 0;
@@ -1118,64 +1153,95 @@ void promptFPEntry()
   while(1)
   {
     char key = checkKeypad();
-      checkTimeUp();
+    checkTimeUp();
 
-      if(key == '*')
+    if(key == '*')
+    {
+      clearPin();
+      //Unlocked menu
+      currentState = 2;
+      return;
+    }
+
+    if(!sensorChecked)
+    {
+      int result = getFingerprintID();
+      //-2 remove prompt, try again
+      //-1 ignore, continue
+      //0 start enroll
+      //1 procede to unlock
+
+      if( result==-2 )
       {
-        clearPin();
-        //viewlockedmenu
-        currentState = 1;
+        drawFingerprintRemoveMenu();
+      }
+      else if ( result==-1 && (lastResult==-2) )
+      {
+        drawFingerprintRetryMenu();
+      }
+      else if ( result>0 )
+      {
+        setFingerprint(currentComp, result);
+
+        //Unlocked menu
+        currentState = 2;
         return;
       }
-
-      if(!sensorChecked)
+      else if (result == 0)
       {
-        int result = getFingerprintID();
-        //-2 remove prompt, try again
-        //-1 ignore, continue
-        //0 start enroll
-        //1 procede to unlock
-
-        if( result==-2 )
-        {
-          drawFingerprintRemoveMenu();
-        }
-        else if ( result==-1 && (lastResult==-2) )
-        {
-          drawFingerprintRetryMenu();
-        }
-        else if ( result>0 )
-        {
-          setFingerprint(currentComp, result);
-
-          //Unlocked menu
-          currentState = 2;
-          return;
-        }
-        else if (result == 0)
-        {
-          sensorChecked = true;
-        }
+        sensorChecked = true;
       }
-      else
+    }
+    else
+    {
+      int result = getFingerprintEnroll(currentComp->number);
+      if(result == -2)
       {
-        int result = getFingerprintEnroll(currentComp->number);
-        if(result == -2)
-        {
-          drawFingerprintRemoveMenu();
-          delay(1000);
-        }
-        else if(result == 1)
-        {
-          setFingerprint(currentComp, currentComp->number);
-
-          //Unlocked menu
-          currentState = 2;
-          return;
-        }
+        drawFingerprintRemoveMenu();
+        delay(1000);
       }
+      else if(result == 1)
+      {
+        setFingerprint(currentComp, currentComp->number);
+
+        //Unlocked menu
+        currentState = 2;
+        return;
+      }
+    }
   }
+}
 
+void settingsMenu()
+{
+  Serial.println("SettingsMenu");
+  drawSettings();
+
+  bool flip1 = locker1.openedEarly;
+  bool flip2 = locker2.openedEarly;
+  bool flip3 = locker3.openedEarly;
+
+  while(1)
+  {
+    char key = checkKeypad();
+    checkTimeUp();
+
+    if(key == '*')
+    {
+      //Main menu
+      currentState = 0;
+      return;
+    }
+
+    if(flip1 != locker1.openedEarly || flip2 != locker2.openedEarly || flip3 != locker3.openedEarly)
+    {
+      Serial.println("Entered menu if");
+      drawTamperMarks();
+      flip1 = locker1.openedEarly;
+      flip2 = locker2.openedEarly;
+      flip3 = locker3.openedEarly;
+    }    
+  }
 }
 
 //Add a character to the pin.
@@ -1548,15 +1614,31 @@ void drawUnlockedMenu(int num)
   display.setCursor(10, 56);
   display.write("*:Back");
 
+  drawExtraLine(num);
+
+  display.display();
+}
+
+void drawExtraLine(int num)
+{
   if(getLockerPointer(num)->usingTimer || getLockerPointer(num)->usingPin || getLockerPointer(num)->usingRFID || getLockerPointer(num)->usingFP)
   {
-    drawLockOption(true);
+    if(getReed(currentComp->number))
+    {
+      drawLockOption(false);
+      drawClosePrompt(true);
+    }
+    else
+    {
+      drawClosePrompt(false);
+      drawLockOption(true);
+    }
   }
   else
   {
+    drawClosePrompt(false);
     drawLockOption(false);
   }
-
   display.display();
 }
 
@@ -1571,8 +1653,26 @@ void drawLockOption(bool isOff)
   {
     display.setTextColor(SSD1306_BLACK);
   }
+  display.setTextSize(1);
   display.setCursor(10, 39);
   display.write("#:Lock");
+
+  display.display();
+}
+
+void drawClosePrompt(bool isOff)
+{
+  if(isOff)
+  {
+    display.setTextColor(SSD1306_WHITE);
+  }
+  else
+  {
+    display.setTextColor(SSD1306_BLACK);
+  }
+  display.setTextSize(1);
+  display.setCursor(10, 39);
+  display.write("Close!");
 
   display.display();
 }
@@ -1903,6 +2003,7 @@ void drawTimer(int num)
 {
   if(!(getLockerPointer(num)->usingTimer))
   {
+    display.setTextColor(SSD1306_WHITE);
     display.setTextSize(1);
     display.setCursor(58, 21);
     display.write("No Timer");
@@ -1940,5 +2041,60 @@ void drawTimer(int num)
 
   display.display();
 
+}
+
+//Draws settings menu that has vibration option and displays tamper detection
+void drawSettings()
+{
+  display.clearDisplay();
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(1);
+
+  display.setCursor(5,5);
+  display.write("#:Call Detection");
+
+  display.setCursor(5,15);
+  display.write("Early Entry:");
+
+  display.setCursor(5,25);
+  display.write("Locker 1:");
+  display.setCursor(5,35);
+  display.write("Locker 2:");
+  display.setCursor(5,45);
+  display.write("Locker 3:");
+
+  display.setCursor(85, 55);
+  display.write("*:Back");
+
+  drawTamperMarks();
+
+  display.display();
+}
+
+
+void drawTamperMarks()
+{
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(1);
+
+  if(locker1.openedEarly)
+  {
+    display.setCursor(60,25);
+    display.write("X");
+  }
+  if(locker2.openedEarly)
+  {
+    display.setCursor(60,35);
+    display.write("X");
+  }
+  if(locker3.openedEarly)
+  {
+    display.setCursor(60,45);
+    display.write("X");
+  }
+  display.display();
 }
 
