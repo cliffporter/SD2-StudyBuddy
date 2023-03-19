@@ -330,7 +330,9 @@ void startLock(int lockerNumber)
 
   if(comp->usingTimer)
   {
-    comp->unlockTime = millis() + (comp->timerSeconds*1000);    
+    comp->unlockTime = millis() + ((comp->timerSeconds)*1000);
+    Serial.print("TIMER SECONDS:");    
+    Serial.println(comp->timerSeconds);
   }
   
   if(comp->usingTimer || comp->usingRFID || comp->usingPin || comp->usingFP)
@@ -977,6 +979,15 @@ void viewUnlockedMenu()
         return;
       }
     }
+
+    if( key=='#' && (currentComp->usingTimer || currentComp->usingPin || currentComp->usingRFID || currentComp->usingFP))
+    {
+      startLock(currentComp->number);
+
+      //Main menu
+      currentState = 0;
+      return;
+    }
   }
 }
 
@@ -1009,8 +1020,18 @@ void promptTimeEntry()
     if(key=='#' && timerIsFull)
     {
       int hours = (10*((int)enteredPin[0]-48)) + (int)enteredPin[1]-48;
-      int minutes = (10*((int)enteredPin[3]-48)) + (int)enteredPin[4]-48;
-      setLockTime(currentComp, ((hours*60)+minutes)*60);
+      int minutes = (10*((int)enteredPin[2]-48)) + (int)enteredPin[3]-48;
+      Serial.print("HOURS: ");
+      Serial.println(hours);
+      Serial.print("MINUTES: ");
+      Serial.println(minutes);
+      int seconds = ((hours*60)+minutes)*60;
+      if(seconds<1 || seconds>360000) {
+        //Reset pin and menu if time entered was 0 or >100 hours
+        clearPin();
+        return;
+      }
+      setLockTime(currentComp, seconds);
       clearPin();
 
       //Unlocked menu
@@ -1142,7 +1163,7 @@ void promptFPEntry()
         if(result == -2)
         {
           drawFingerprintRemoveMenu();
-          delay(2000);
+          delay(1000);
         }
         else if(result == 1)
         {
@@ -1315,7 +1336,7 @@ int getFingerprintEnroll(int id)
 
   Serial.println("Remove finger");
   drawFingerprintRemoveMenu();
-  delay(2000);
+  delay(1000);
   p = 0;
   while (p != FINGERPRINT_NOFINGER) 
   {
