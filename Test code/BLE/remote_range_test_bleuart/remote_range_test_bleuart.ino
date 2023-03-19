@@ -33,7 +33,7 @@ BLEBas  blebas;  // battery
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
-#define BLE_TIMEOUT 5000
+#define BLE_TIMEOUT 3250
 
 long lastSent;
 int msgNum;
