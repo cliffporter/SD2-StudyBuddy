@@ -16,6 +16,7 @@
 #define RFID_CARD               {0x73, 0x9B, 0x17, 0x94}
 #define SERVO_UNLOCK_POSITION   180
 #define SERVO_LOCK_POSITION     0
+#define VIBRATION_THRESHOLD     2000
 
 
 
@@ -61,7 +62,8 @@ char keymap[KEYPAD_COLS][KEYPAD_ROWS] = {
 
 
 //Globals
-struct Compartment {
+struct Compartment 
+{
   int number;
   bool isLocked;
   bool openedEarly;
@@ -80,6 +82,22 @@ struct Compartment {
 Compartment locker1;
 Compartment locker2;
 Compartment locker3;
+
+struct Vibration
+{
+  bool isUsingVibe;
+  long nextPrint;
+  long nextReading;
+  int ticks;
+  int reading;
+  int side;
+  int last4[4];
+  int valNum;
+  int lastMin[240];
+  int minIndex;
+};
+Vibration phoneSensor;
+
 
 long lastRFIDScan;
 byte lastRFIDTag[10];
@@ -124,6 +142,9 @@ void setup()
   locker1 = createCompartment(1);
   locker2 = createCompartment(2);
   locker3 = createCompartment(3);
+
+  //Vibration sensor setup
+  phoneSensor = createVibration();
   
   //TCA8418 I2C GPIO Expander/Keypad setup
   if (! tio.begin(TCA8418_DEFAULT_ADDR, &Wire)) 
@@ -391,6 +412,19 @@ void clearLocker(Compartment * c)
   c->usingFP = false;
   c->fpNum = -1;
 }
+//Initialize the vibration sensor parameters
+Vibration createVibration()
+{
+  Vibration newVib;
+
+  newVib.isUsingVibe = false;
+  newVib.nextPrint = millis();
+  newVib.nextReading = millis();
+  newVib.side = 0;
+  newVib.ticks = 0;
+
+  return newVib; 
+}
 //Check all compartments to see if their time is up, unlock if true. Also flip the tamper bit if compartment is locked and reed switch is open.
 void checkTimeUp()
 {
@@ -424,6 +458,55 @@ void checkTimeUp()
   if(locker3.isLocked && getReed(locker3.number) && !locker3.openedEarly)
   {
     locker3.openedEarly = true;
+  }
+
+  if(phoneSensor.isUsingVibe)
+  {
+    if(millis() >= phoneSensor.nextReading)
+    {
+      phoneSensor.reading = analogRead(A1);
+      //Serial.printf("Vibration:%d ", reading);
+      //Serial.printf("Ref:1000 ");
+      //Serial.printf("Min:0\n");
+
+      if((phoneSensor.side==0&&phoneSensor.reading>500))
+      {
+        phoneSensor.ticks++;
+        phoneSensor.side=1;
+      }
+      else if((phoneSensor.side==1&&phoneSensor.reading<500))
+      {
+        phoneSensor.ticks++;
+        phoneSensor.side=0;
+      }
+
+      phoneSensor.nextReading = millis()+1;
+    }
+
+    if(millis() >= phoneSensor.nextPrint)
+    {
+      phoneSensor.last4[phoneSensor.valNum%4] = phoneSensor.ticks;
+      phoneSensor.valNum++;
+      phoneSensor.lastMin[phoneSensor.minIndex%240] = phoneSensor.ticks;
+      phoneSensor.minIndex++;
+      int meantps = (phoneSensor.last4[0]+phoneSensor.last4[1]+phoneSensor.last4[2]+phoneSensor.last4[3]);
+      int tpm = 0;
+      for(int i=0; i<240; i++)
+      {
+        tpm += phoneSensor.lastMin[i];
+      }
+
+      if(tpm>200)
+      {
+        Serial.printf("tps:%d tpm:%d\n", meantps, tpm);
+      }
+      if(locker2.isLocked && tpm>=VIBRATION_THRESHOLD)
+      {
+        unlock(&locker2);
+      }
+      phoneSensor.nextPrint = millis()+250;
+      phoneSensor.ticks=0;
+    }
   }
 }
 //Unlock a compartment, check for errors and clear its settings
@@ -1231,6 +1314,12 @@ void settingsMenu()
       //Main menu
       currentState = 0;
       return;
+    }
+
+    if(key == '#')
+    {
+      phoneSensor.isUsingVibe = !phoneSensor.isUsingVibe;
+      drawVibeMark();
     }
 
     if(flip1 != locker1.openedEarly || flip2 != locker2.openedEarly || flip3 != locker3.openedEarly)
@@ -2053,7 +2142,7 @@ void drawSettings()
   display.setTextSize(1);
 
   display.setCursor(5,5);
-  display.write("#:Call Detection");
+  display.write("#:Call Detection:");
 
   display.setCursor(5,15);
   display.write("Early Entry:");
@@ -2069,6 +2158,7 @@ void drawSettings()
   display.write("*:Back");
 
   drawTamperMarks();
+  drawVibeMark();
 
   display.display();
 }
@@ -2093,6 +2183,26 @@ void drawTamperMarks()
   if(locker3.openedEarly)
   {
     display.setCursor(60,45);
+    display.write("X");
+  }
+  display.display();
+}
+
+void drawVibeMark()
+{
+  display.cp437(true);
+  display.setTextSize(1);
+
+  if(phoneSensor.isUsingVibe)
+  {
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(110,5);
+    display.write("X");
+  }
+  else
+  {
+    display.setTextColor(SSD1306_BLACK);
+    display.setCursor(110,5);
     display.write("X");
   }
   display.display();
