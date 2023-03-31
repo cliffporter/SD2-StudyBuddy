@@ -112,10 +112,16 @@ Compartment * currentComp;
 
 void setup() 
 {
+  pinMode(A0, INPUT_PULLUP);
+  bool devMode = !digitalRead(A0);
   Serial.begin(9600); 
-  while (!Serial); //wait for serial to begin
+  // while (!Serial);
+  while (devMode && !Serial); //wait for serial to begin
   Serial.println("Serial Begin:");
   SPI.begin();
+
+  Serial.print("dev: ");
+  Serial.println(devMode);
 
   //Fingerprint sensor setup
   finger.begin(57600);
