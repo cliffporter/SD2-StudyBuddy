@@ -120,8 +120,16 @@ void setup()
   Serial.println("Serial Begin:");
   SPI.begin();
 
-  Serial.print("dev: ");
-  Serial.println(devMode);
+  // Serial.print("dev: ");
+  // Serial.println(devMode);
+
+  //Display setup
+  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
+    Serial.println(F("SSD1306 display allocation failed"));
+    // drawDisplayFindError();
+    for(;;); // Don't proceed, loop forever
+  }
+  display.clearDisplay();
 
   //Fingerprint sensor setup
   finger.begin(57600);
@@ -130,6 +138,7 @@ void setup()
     Serial.println("Found fingerprint sensor!");
   } else {
     Serial.println("Did not find fingerprint sensor :(");
+    drawFPFindError();
     while (1) { delay(1); }
   }
 
@@ -156,11 +165,13 @@ void setup()
   if (! tio.begin(TCA8418_DEFAULT_ADDR, &Wire)) 
   {
     Serial.println("TCA8418 not found, check wiring & pullups!");
+    drawExpanderFindError();
     while (1);
   }
   if (! keypad.begin(TCA8418_DEFAULT_ADDR, &Wire)) 
   {
     Serial.println("keypad not found, check wiring & pullups!");
+    drawKeypadFindError();
     while (1);
   }
   keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
@@ -168,13 +179,6 @@ void setup()
   tio.pinMode(REED_2, INPUT_PULLUP);
   tio.pinMode(REED_3, INPUT_PULLUP);
   keypad.flush();
-
-  //Display setup
-  if(!display.begin(SSD1306_SWITCHCAPVCC)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
-  }
-  display.clearDisplay();
 
 
   //Globals init
@@ -2213,4 +2217,96 @@ void drawVibeMark()
   }
   display.display();
 }
+
+void drawFPFindError()
+{
+  display.clearDisplay();
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(2);
+
+  display.setCursor(0,0);
+  display.write("Init Error");
+
+  display.setCursor(0,20);
+  display.write("FP sensor missing");
+  
+
+  display.display();
+}
+
+void drawRFIDFindError()
+{
+  display.clearDisplay();
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(2);
+
+  display.setCursor(0,0);
+  display.write("Init Error");
+
+  display.setCursor(0,20);
+  display.write("RFID reader missing");
+  
+
+  display.display();
+}
+
+// void drawDisplayFindError()
+// {
+//   display.clearDisplay();
+
+//   display.setTextColor(SSD1306_WHITE);
+//   display.cp437(true);
+//   display.setTextSize(2);
+
+//   display.setCursor(0,0);
+//   display.write("Init Error");
+
+//   display.setCursor(0,20);
+//   display.write("Display missing");
+  
+
+//   display.display();
+// }
+
+void drawExpanderFindError()
+{
+  display.clearDisplay();
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(2);
+
+  display.setCursor(0,0);
+  display.write("Init Error");
+
+  display.setCursor(0,20);
+  display.write("GPIO expander missing");
+  
+
+  display.display();
+}
+
+void drawKeypadFindError()
+{
+  display.clearDisplay();
+
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+  display.setTextSize(2);
+
+  display.setCursor(0,0);
+  display.write("Init Error");
+
+  display.setCursor(0,20);
+  display.write("Keypad missing");
+  
+
+  display.display();
+}
+
+
 
