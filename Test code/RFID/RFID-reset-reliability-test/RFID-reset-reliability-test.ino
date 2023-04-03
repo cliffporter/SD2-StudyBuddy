@@ -43,7 +43,8 @@
 
 MFRC522 rfid(SS_PIN, RST_PIN);  // Create MFRC522 instance
 
-
+long nextTest;
+long lastReset;
 
 void setup() 
 {
@@ -54,11 +55,26 @@ void setup()
 	delay(4);				// Optional delay. Some board do need more time after init to be ready, see Readme
 	rfid.PCD_DumpVersionToSerial();	// Show details of PCD - MFRC522 Card Reader details
 	Serial.println(F("Scan PICC to see UID, SAK, type, and data blocks..."));
+
+  nextTest = millis()+5000;
+  lastReset = millis()+5000;
 }
 
 void loop() {
 
-  bool test = rfid.PCD_PerformSelfTest();
+  if(millis() >= nextTest)
+  {
+    bool test = rfid.PCD_PerformSelfTest();
+    Serial.print("Test result: ");
+    Serial.println(test);
+    if(!test)
+    {
+      rfid.PCD_Reset();
+      rfid.PCD_Init();
+    }
+    nextTest = millis()+1000;
+  }
+  
 
 	// Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
 	if ( ! rfid.PICC_IsNewCardPresent()) {

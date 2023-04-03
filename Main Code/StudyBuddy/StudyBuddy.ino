@@ -100,6 +100,7 @@ Vibration phoneSensor;
 
 
 long lastRFIDScan;
+long nextRFIDTest;
 byte lastRFIDTag[10];
 
 char enteredPin[5];
@@ -134,19 +135,27 @@ void setup()
   //Fingerprint sensor setup
   finger.begin(57600);
   delay(5);
-  if (finger.verifyPassword()) {
+  if (finger.verifyPassword()) 
+  {
     Serial.println("Found fingerprint sensor!");
-  } else {
+  } 
+  else 
+  {
     Serial.println("Did not find fingerprint sensor :(");
     drawFPFindError();
     while (1) { delay(1); }
   }
 
   //RFID setup
+  Serial.println("Hi!");
   rfid.PCD_Init();	
-	delay(4);			
+  Serial.println("foo1");
+	delay(4);	
+  Serial.println("foo2");		
 	Serial.print("RFID "); //RFID Firmware Version: 0x92 = v2.0
+  Serial.println("bar1");	
   rfid.PCD_DumpVersionToSerial();
+  Serial.println("bar2");	
 
   //Servos
   servo1.attach(SERVO_1);
@@ -183,33 +192,18 @@ void setup()
 
   //Globals init
   pinIndex = 0;
+  nextRFIDTest = millis();
+  currentState=0;  //main menu - drawViewMenu
 
-
-  //Lock servos (remove later)
-  // servoLock(1);
-  // delay(1000);
-  // servoLock(2);
-  // delay(1000);
-  // servoLock(3);
-
-  //Test unlocking
-  //byte tag[] = RFID_TAG;
-  //startLock(2, -1, tag, NULL, -1);
-  //Serial.println("Locker #2 locked with tag");
-
-  //startLock(1, 10, NULL, NULL, -1);
-  //Serial.println("Unlocking #1 in 10s");
-
-  //main drawViewMenu
-  currentState=0;
-
-  byte tag[] = RFID_TAG;
-  char  pin[5] = {'1','2','3','4','\0'};
+  // byte tag[] = RFID_TAG;
+  // char  pin[5] = {'1','2','3','4','\0'};
  // startLock(1, 20, NULL, pin, 1);
 }
 
 void loop() 
 {
+
+
   switch(currentState)
   {
     case 0: {
@@ -313,6 +307,22 @@ byte * scanRFID()
   return scanned;
 }
 
+void RFIDTest()
+{
+
+  if(millis() >= nextRFIDTest)
+  {
+    bool test = rfid.PCD_PerformSelfTest();
+    //Serial.print("Test result: ");
+    //Serial.println(test);
+    if(!test)
+    {
+      rfid.PCD_Reset();
+      rfid.PCD_Init();
+    }
+    nextRFIDTest = millis()+1000;
+  }
+}
 //Returns the locker number of the fist locker with a matching rfid tag
 //returns -1 if none
 int checkForRegisteredRFID(byte * scanned)
@@ -518,6 +528,9 @@ void checkTimeUp()
       phoneSensor.ticks=0;
     }
   }
+
+  //test the rfid reader every second to keep it on
+  RFIDTest();
 }
 //Unlock a compartment, check for errors and clear its settings
 void unlock ( int lockerNumber )
