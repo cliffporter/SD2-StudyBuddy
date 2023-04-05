@@ -14,8 +14,12 @@
 #define RFID_SCAN_DELAY         200
 #define RFID_TAG                {0x93, 0xFE, 0xCF, 0x1D}
 #define RFID_CARD               {0x73, 0x9B, 0x17, 0x94}
-#define SERVO_UNLOCK_POSITION   180
-#define SERVO_LOCK_POSITION     0
+#define SERVO1_UNLOCK_POSITION   180
+#define SERVO1_LOCK_POSITION     20
+#define SERVO2_UNLOCK_POSITION   0
+#define SERVO2_LOCK_POSITION     160
+#define SERVO3_UNLOCK_POSITION   180
+#define SERVO3_LOCK_POSITION     20
 #define VIBRATION_THRESHOLD     2000
 
 
@@ -653,13 +657,36 @@ Servo getServo(int servoNumber)
 void servoUnlock (int lockerNumber)
 {
   Compartment * comp = getLockerPointer(lockerNumber);
-  comp->servo.write(SERVO_UNLOCK_POSITION);
+  if(lockerNumber == 1)
+  {
+    comp->servo.write(SERVO1_UNLOCK_POSITION);
+  }
+  if(lockerNumber == 2) 
+  {
+    comp->servo.write(SERVO2_UNLOCK_POSITION);
+  }
+  if(lockerNumber == 3)
+  {
+    comp->servo.write(SERVO3_UNLOCK_POSITION);
+  }
 }
 //Move the servo to the lock position
 void servoLock (int lockerNumber)
 {
   Compartment * comp = getLockerPointer(lockerNumber);
-  comp->servo.write(SERVO_LOCK_POSITION);
+
+  if(lockerNumber == 1)
+  {
+    comp->servo.write(SERVO1_LOCK_POSITION);
+  }
+  if(lockerNumber == 2) 
+  {
+    comp->servo.write(SERVO2_LOCK_POSITION);
+  }
+  if(lockerNumber == 3)
+  {
+    comp->servo.write(SERVO3_LOCK_POSITION);
+  }
 }
 
 /*----------------------------------------------*/
