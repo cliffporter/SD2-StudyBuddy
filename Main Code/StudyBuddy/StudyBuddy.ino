@@ -2202,6 +2202,7 @@ void drawTimer(int num)
     display.setTextSize(1);
     display.setCursor(58, 21);
     display.write("No Timer");
+    display.display();
     return;
   }
   uint32_t time = millis();
