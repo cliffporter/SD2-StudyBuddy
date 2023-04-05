@@ -254,6 +254,14 @@ void loop()
       settingsMenu();
       break;
     }
+    case 11: {
+      failRFID();
+      break;
+    }
+    case 12: {
+      failFP();
+      break;
+    }
   }
 }
 
@@ -964,8 +972,8 @@ void promptRFIDChallenge()
       else if ( tag!=NULL )
       {
         Serial.println("Wrong tag >:(");
-        //viewLockedMenu
-        currentState = 1;
+        //failRFID menu
+        currentState = 11;
         return;
       }
     }
@@ -1033,8 +1041,8 @@ void promptFingerChallenge()
         else
         {
           Serial.println("Wrong finger >:(");
-          //viewLockedMenu
-          currentState = 1;
+          //failFP menu
+          currentState = 12;
           return;
         }
       }
@@ -1380,6 +1388,54 @@ void settingsMenu()
       flip2 = locker2.openedEarly;
       flip3 = locker3.openedEarly;
     }    
+  }
+}
+
+void failRFID()
+{
+  Serial.println("FailRFIDMenu");
+  drawChallengeFail();
+  while(1)
+  {
+    char key = checkKeypad();
+    checkTimeUp();
+    if( currentComp->isLocked==false )
+    {
+      //mainMenu
+      currentState = 0;
+      return;
+    }
+
+    if(key == '#')
+    {
+      //RFIDChallenge menu
+      currentState = 4;
+      return;
+    }
+  }
+}
+
+void failFP()
+{
+  Serial.println("FailFPMenu");
+  drawChallengeFail();
+  while(1)
+  {
+    char key = checkKeypad();
+      checkTimeUp();
+    if( currentComp->isLocked==false )
+    {
+      //mainMenu
+      currentState = 0;
+      return;
+    }
+
+    if(key == '#')
+    {
+      //FPChallenge menu
+      currentState = 5;
+      return;
+    }
   }
 }
 
@@ -2059,7 +2115,7 @@ void drawFingerprintMenu()
   display.setCursor(30, 10);
   display.write("Place Finger");
 
-  display.setCursor(35, 30);
+  display.setCursor(37, 30);
   display.write("On Scanner");
 
   display.setTextSize(1);
@@ -2255,6 +2311,28 @@ void drawVibeMark()
     display.setCursor(110,5);
     display.write("X");
   }
+  display.display();
+}
+
+void drawChallengeFail()
+{
+  display.clearDisplay();
+
+  display.setTextSize(1,2);
+  display.setTextColor(SSD1306_WHITE);
+  display.cp437(true);
+
+  display.setCursor(38, 10);
+  display.write("Incorrect");
+
+  display.setCursor(28, 30);
+  display.write("Please Retry");
+
+  display.setTextSize(1);
+
+  display.setCursor(85, 55);
+  display.write("#:Okay");
+
   display.display();
 }
 
