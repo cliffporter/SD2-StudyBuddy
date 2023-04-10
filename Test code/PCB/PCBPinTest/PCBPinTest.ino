@@ -108,6 +108,9 @@ void setup()
   pinMode(SERVO_2,OUTPUT);
   pinMode(SERVO_3,OUTPUT);
 
+  pinMode(0, OUTPUT);
+  pinMode(1, OUTPUT);
+
   pinMode(A0,OUTPUT);
   pinMode(A1,OUTPUT);
   pinMode(A2,OUTPUT);
@@ -203,6 +206,8 @@ void loop()
   digitalWrite(SERVO_1,LOW);
   digitalWrite(SERVO_2,LOW);
   digitalWrite(SERVO_3,LOW);
+  digitalWrite(0,LOW);
+  digitalWrite(1,LOW);
   digitalWrite(A0,LOW);
   digitalWrite(A1,LOW);
   digitalWrite(A2,LOW);
@@ -219,6 +224,8 @@ void loop()
   digitalWrite(SERVO_1,HIGH);
   digitalWrite(SERVO_2,HIGH);
   digitalWrite(SERVO_3,HIGH);
+  digitalWrite(0,HIGH);
+  digitalWrite(1,HIGH);
   digitalWrite(A0,HIGH);
   digitalWrite(A1,HIGH);
   digitalWrite(A2,HIGH);
