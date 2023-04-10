@@ -139,7 +139,7 @@ void setup()
   //Fingerprint sensor setup
   finger.begin(57600);
   delay(5);
-  if (true || finger.verifyPassword()) 
+  if ( finger.verifyPassword()) 
   {
     Serial.println("Found fingerprint sensor!");
   } 
