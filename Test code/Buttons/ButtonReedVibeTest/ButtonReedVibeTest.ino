@@ -31,12 +31,16 @@ void setup()
 {
   Serial.begin(9600); 
   while (!Serial)
+  // if(!Serial)
+  //   delay(500);
   Serial.println(__FILE__);
+  Serial.println("foo");
 
   if (! tio.begin(TCA8418_DEFAULT_ADDR, &Wire)) {
     Serial.println("TCA8418 not found, check wiring & pullups!");
     while (1);
   }
+  Serial.println("bar");
 
   //  SET INPUT MODE
   for (int pin = 0; pin < 18; pin++)

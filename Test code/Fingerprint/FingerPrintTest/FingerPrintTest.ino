@@ -23,7 +23,7 @@
 // pin #2 is IN from sensor (GREEN wire)
 // pin #3 is OUT from arduino  (WHITE wire)
 // Set up the serial port to use softwareserial..
-SoftwareSerial mySerial(2, 3);
+SoftwareSerial mySerial(A2, A3);
 
 #else
 // On Leonardo/M0/etc, others with hardware serial, use hardware serial!

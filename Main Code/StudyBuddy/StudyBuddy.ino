@@ -139,7 +139,7 @@ void setup()
   //Fingerprint sensor setup
   finger.begin(57600);
   delay(5);
-  if (finger.verifyPassword()) 
+  if (true || finger.verifyPassword()) 
   {
     Serial.println("Found fingerprint sensor!");
   } 
@@ -151,15 +151,15 @@ void setup()
   }
 
   //RFID setup
-  Serial.println("Hi!");
+  // Serial.println("Hi!");
   rfid.PCD_Init();	
-  Serial.println("foo1");
+  // Serial.println("foo1");
 	delay(4);	
-  Serial.println("foo2");		
+  // Serial.println("foo2");		
 	Serial.print("RFID "); //RFID Firmware Version: 0x92 = v2.0
-  Serial.println("bar1");	
+  // Serial.println("bar1");	
   rfid.PCD_DumpVersionToSerial();
-  Serial.println("bar2");	
+  // Serial.println("bar2");	
 
   //Servos
   servo1.attach(SERVO_1);
@@ -174,6 +174,7 @@ void setup()
   //Vibration sensor setup
   phoneSensor = createVibration();
   
+  Serial.println("foo1");
   //TCA8418 I2C GPIO Expander/Keypad setup
   if (! tio.begin(TCA8418_DEFAULT_ADDR, &Wire)) 
   {
@@ -187,6 +188,7 @@ void setup()
     drawKeypadFindError();
     while (1);
   }
+  Serial.println("BAR!");
   keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
   tio.pinMode(REED_1, INPUT_PULLUP);
   tio.pinMode(REED_2, INPUT_PULLUP);
