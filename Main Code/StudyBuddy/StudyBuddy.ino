@@ -7,6 +7,7 @@
 #include <Adafruit_GFX.h>
 #include <string>
 #include <Adafruit_SSD1306.h>
+#include <bluefruit.h>
 
 
 //Paramaters
@@ -64,6 +65,7 @@ char keymap[KEYPAD_COLS][KEYPAD_ROWS] = {
     {'3', '2', '1'},
 };
 
+#define BLE_SEND_SPEED 10000
 
 //Globals
 struct Compartment 
@@ -102,6 +104,15 @@ struct Vibration
 };
 Vibration phoneSensor;
 
+BLEClientBas  clientBas;  // battery client
+BLEClientDis  clientDis;  // device information client
+BLEClientUart clientUart; // bleuart client
+
+long lastBLESend1;
+long lastBLESend2;
+long lastBLESend3;
+
+#define KEEP_ON_DELAY 4000
 
 long lastRFIDScan;
 long nextRFIDTest;
@@ -174,7 +185,7 @@ void setup()
   //Vibration sensor setup
   phoneSensor = createVibration();
   
-  Serial.println("foo1");
+  // Serial.println("foo1");
   //TCA8418 I2C GPIO Expander/Keypad setup
   if (! tio.begin(TCA8418_DEFAULT_ADDR, &Wire)) 
   {
@@ -188,7 +199,7 @@ void setup()
     drawKeypadFindError();
     while (1);
   }
-  Serial.println("BAR!");
+  // Serial.println("BAR!");
   keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
   tio.pinMode(REED_1, INPUT_PULLUP);
   tio.pinMode(REED_2, INPUT_PULLUP);
@@ -196,10 +207,55 @@ void setup()
   keypad.flush();
 
 
+  //BLE setup
+  Bluefruit.begin(0, 1);
+  
+  Bluefruit.setName("Bluefruit52 Central");
+
+  // Configure Battyer client
+  clientBas.begin();  
+
+  // Configure DIS client
+  clientDis.begin();
+
+  // Init BLE Central Uart Serivce
+  clientUart.begin();
+  clientUart.setRxCallback(bleuart_rx_callback);
+
+  // Increase Blink rate to different from PrPh advertising mode
+  Bluefruit.setConnLedInterval(250);
+
+  // Callbacks for Central
+  Bluefruit.Central.setConnectCallback(connect_callback);
+  Bluefruit.Central.setDisconnectCallback(disconnect_callback);
+
+  /* Start Central Scanning
+   * - Enable auto scan if disconnected
+   * - Interval = 100 ms, window = 80 ms
+   * - Don't use active scan
+   * - Start(timeout) with timeout = 0 will scan forever (until connected)
+   */
+  Bluefruit.Scanner.setRxCallback(scan_callback);
+  Bluefruit.Scanner.restartOnDisconnect(true);
+  Bluefruit.Scanner.setInterval(160, 80); // in unit of 0.625 ms
+  Bluefruit.Scanner.useActiveScan(false);
+  Bluefruit.Scanner.start(0);                   // // 0 = Don't stop scanning after n seconds
+
   //Globals init
   pinIndex = 0;
   nextRFIDTest = millis();
   currentState=0;  //main menu - drawViewMenu
+
+  lastBLESend1 = millis();
+  lastBLESend2 = -1;
+  lastBLESend3 = -1;
+
+  // Serial.print("send1: ");
+  // Serial.println(lastBLESend1);
+  // Serial.print("send2: ");
+  // Serial.println(lastBLESend2);
+  // Serial.print("send3: ");
+  // Serial.println(lastBLESend3);
 
   // byte tag[] = RFID_TAG;
   // char  pin[5] = {'1','2','3','4','\0'};
@@ -395,6 +451,9 @@ void startLock(int lockerNumber)
     comp->isLocked = true;
     servoLock(lockerNumber);
   }
+
+  //Update the remote now
+  sendCompStatus(lockerNumber);
 }
 //Main unlock function
 void unlock ( Compartment * c )  //can call with pointer or number (see helpers)
@@ -406,6 +465,9 @@ void unlock ( Compartment * c )  //can call with pointer or number (see helpers)
   if(currentState==0) {
     drawMainMenu();
   }
+
+  //Update the remote now
+  sendCompStatus(c->number);
 }
 
 //Initialize a Compartment
@@ -540,11 +602,13 @@ void checkTimeUp()
       }
       phoneSensor.nextPrint = millis()+250;
       phoneSensor.ticks=0;
-    }
+    }    
   }
 
   //test the rfid reader every second to keep it on
   RFIDTest();
+
+  sendStatusToRemote();
 }
 //Unlock a compartment, check for errors and clear its settings
 void unlock ( int lockerNumber )
@@ -808,6 +872,11 @@ void mainMenu()
         return;
       }
     }
+
+    // if(key != 0 && key=='7')
+    // {
+    //   sendCompStatus(1);
+    // }
 
     if(key != 0 && key=='*')
     {
@@ -1699,6 +1768,216 @@ int getFingerprintEnroll(int id)
   }
 
   return 1;
+}
+
+
+/*-------------------------------------------------*/
+/*-------------------BLE FUNCTIONS-----------------*/
+/*-------------------------------------------------*/
+
+void scan_callback(ble_gap_evt_adv_report_t* report)
+{
+  // Check if advertising contain BleUart service
+  if ( Bluefruit.Scanner.checkReportForService(report, clientUart) )
+  {
+    Serial.print("BLE UART service detected. Connecting ... ");
+
+    // Connect to device with bleuart service in advertising
+    Bluefruit.Central.connect(report);
+  }else
+  {      
+    // For Softdevice v6: after received a report, scanner will be paused
+    // We need to call Scanner resume() to continue scanning
+    Bluefruit.Scanner.resume();
+  }
+}
+void connect_callback(uint16_t conn_handle)
+{
+  Serial.println("Connected");
+
+  Serial.print("Dicovering Device Information ... ");
+  if ( clientDis.discover(conn_handle) )
+  {
+    Serial.println("Found it");
+    char buffer[32+1];
+    
+    // read and print out Manufacturer
+    memset(buffer, 0, sizeof(buffer));
+    if ( clientDis.getManufacturer(buffer, sizeof(buffer)) )
+    {
+      Serial.print("Manufacturer: ");
+      Serial.println(buffer);
+    }
+
+    // read and print out Model Number
+    memset(buffer, 0, sizeof(buffer));
+    if ( clientDis.getModel(buffer, sizeof(buffer)) )
+    {
+      Serial.print("Model: ");
+      Serial.println(buffer);
+    }
+
+    Serial.println();
+  }else
+  {
+    Serial.println("Found NONE");
+  }
+
+  Serial.print("Dicovering Battery ... ");
+  if ( clientBas.discover(conn_handle) )
+  {
+    Serial.println("Found it");
+    Serial.print("Battery level: ");
+    Serial.print(clientBas.read());
+    Serial.println("%");
+  }else
+  {
+    Serial.println("Found NONE");
+  }
+
+  Serial.print("Discovering BLE Uart Service ... ");
+  if ( clientUart.discover(conn_handle) )
+  {
+    Serial.println("Found it");
+
+    Serial.println("Enable TXD's notify");
+    clientUart.enableTXD();
+
+    Serial.println("Ready to receive from peripheral");
+  }else
+  {
+    Serial.println("Found NONE");
+    
+    // disconnect since we couldn't find bleuart service
+    Bluefruit.disconnect(conn_handle);
+  }  
+
+  sendCompStatus(1);
+  sendCompStatus(2);
+  sendCompStatus(3);
+}
+void disconnect_callback(uint16_t conn_handle, uint8_t reason)
+{
+  (void) conn_handle;
+  (void) reason;
+  
+  Serial.print("Disconnected, reason = 0x"); Serial.println(reason, HEX);
+}
+void bleuart_rx_callback(BLEClientUart& uart_svc)
+{
+  Serial.print("[RX]: ");
+  
+  int strIdx=0;
+  char recv[20+1];
+  while ( uart_svc.available() )
+  {
+    char c = (char) uart_svc.read();
+    Serial.print( c );
+    recv[strIdx++] = c;
+    //Serial.print(":");
+  }
+  Serial.println();
+  
+  //transmit an acknoledge message 
+  // char reply[24+1] = {'A','C','K','-'};
+  // strcat(reply, recv);
+  // Serial.print("Transmitting reply: ");
+  // Serial.println(reply);
+  // clientUart.print( reply );
+
+  if(recv[0]=='R')
+  {
+    int lockerNumber = recv[1]-48;
+    if(recv[2]=='U')
+    {
+      unlock(lockerNumber);
+    }
+  }
+
+  Serial.println();
+}
+
+void sendStatusToRemote()
+{
+
+  if(lastBLESend1>0 && millis()-lastBLESend1 > BLE_SEND_SPEED)
+  {
+    sendCompStatus(1);
+    lastBLESend1 = -1;
+    lastBLESend2 = millis();
+  }
+  else if(lastBLESend2>0 && millis()-lastBLESend2 > BLE_SEND_SPEED)
+  {
+    // Serial.print(lastBLESend2);
+    sendCompStatus(2);
+    lastBLESend2 = -1;
+    lastBLESend3 = millis();
+  }
+  else if(lastBLESend3>0 && millis()-lastBLESend3 > BLE_SEND_SPEED)
+  {
+    // Serial.print(lastBLESend3);
+    sendCompStatus(3);
+    lastBLESend3 = -1;
+    lastBLESend1 = millis();
+  }
+}
+void sendCompStatus(int lockerNum)
+{
+  Compartment * comp = getLockerPointer(lockerNum);
+  char msg[12];
+  msg[0] = 'L';
+  msg[1] = comp->number+48;
+
+  msg[2] = comp->isLocked+48;
+
+  msg[3] = comp->usingTimer+48;
+  msg[4] = comp->usingPin+48;
+  msg[5] = comp->usingRFID+48;
+  msg[6] = comp->usingFP+48;
+
+  if(comp->usingTimer)
+  {
+    uint32_t time = millis();
+
+    unsigned long seconds = (comp->unlockTime-time)/1000;
+    unsigned long minute = (seconds/60)%60;
+    unsigned long hour = (seconds/3600)%100;
+
+    if(hour<10) 
+    {
+      msg[7] = '0';
+      msg[8] = hour+48;
+    }
+    else
+    {
+      msg[7] = (hour/10)+48;
+      msg[8] = (hour%10)+48;
+    }
+
+    if(minute<10) 
+    {
+      msg[9] = '0';
+      msg[10] = minute+48;
+    }
+    else
+    {
+      msg[9] = (minute/10)+48;
+      msg[10] = (minute%10)+48;
+    }
+  }
+  else
+  {
+    msg[7] = '9';
+    msg[8] = '9';
+    msg[9] = '9';
+    msg[10] = '9';
+  }
+  msg[11] = '\0';
+
+  Serial.print("[Tx]: ");
+  Serial.println(msg);
+
+  clientUart.print( msg );
 }
 
 /*-----------------------------------------------------*/

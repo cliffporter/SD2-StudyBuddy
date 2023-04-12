@@ -6,6 +6,8 @@
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
 
+#define BLE_TIMEOUT 3250
+
 //Button pin definitions
 #define BUTTON_LEFT 13
 #define BUTTON_RIGHT 12
@@ -55,7 +57,7 @@ void setup() {
   // {}
   if(!Serial)
   {
-    delay(100);
+    delay(1000);
   }
 
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -70,7 +72,7 @@ void setup() {
   pinMode(BUTTON_UNLOCK, INPUT_PULLUP);
 
 
-
+  Serial.println("foo1");
 
   ///BLE Setup
   #if CFG_DEBUG
@@ -124,7 +126,6 @@ void setup() {
 
 
 
-
   locker1 = createCompartment(1);
   locker2 = createCompartment(2);
   locker3 = createCompartment(3);
@@ -135,14 +136,13 @@ void setup() {
   // Clear the buffer
   display.clearDisplay();
 
-  locker1.isLocked = true;
-  locker2.isLocked = true;
-  locker2.usingTimer = true;
-  locker2.timer[0] = '1';
-  locker2.timer[1] = '2';
-  locker2.timer[2] = '3';
-  locker2.timer[3] = '4';
-
+  // locker1.isLocked = true;
+  // locker2.isLocked = true;
+  // locker2.usingTimer = true;
+  // locker2.timer[0] = '1';
+  // locker2.timer[1] = '2';
+  // locker2.timer[2] = '3';
+  // locker2.timer[3] = '4';
 
 }
 
@@ -195,7 +195,7 @@ void loop() {
 
 void LoopCheck()
 {
-
+  ReceiveTransmissions();
 }
 
 /*
@@ -273,7 +273,7 @@ void UnlockMenu()
     {
       buttonTime = millis();
 
-      TransmitUnlockSignal();
+      TransmitUnlockSignal(currentComp->number);
 
       currentState = 0;
       return;
@@ -285,6 +285,7 @@ void UnlockMenu()
 //Menu to be held in while connection is broken
 void ConnectionMenu()
 {
+  Serial.println("About to draw con menu");
   drawConnectionMenu();
   while(1)
   {
@@ -384,14 +385,65 @@ Compartment * getLockerPointer(int lockerNumber)
 ------------------------------------------------------------------------
 */
 
-void TransmitUnlockSignal()
+void TransmitUnlockSignal(int lockerNum)
 {
-
+  // uint8_t buf[64];
+  // int count = Serial.readBytes(buf, sizeof(buf));
+  // bleuart.write( buf, count );
+  char msg[4];
+  msg[0] = 'R';
+  msg[1] = (char) (lockerNum+48);
+  msg[2] = 'U';
+  msg[3] = '\0';
+  bleuart.write( msg, 3 );  
+  Serial.print("[Tx]: ");
+  Serial.println(msg);
 }
 
-void RecieveTransmissions()
+void ReceiveTransmissions()
 {
+  //L# TPRF HH MM
+  //L2 1010 02 53
+  if ( bleuart.available() )
+    {
+      Serial.print("[Rx] ");
+      char msg[12];
+      int i = 0;
+      while ( bleuart.available() )
+      {
+        // uint8_t ch;
+        // ch = (uint8_t) bleuart.read();
+        msg[i++] = bleuart.read();
+      }
+      Serial.println(msg);
 
+      if(msg[0] != 'L')
+        return;
+
+      int lockerNum = msg[1]-48; //L [1]
+
+      Compartment * comp = getLockerPointer(lockerNum);
+      comp->isLocked = msg[2]-48; //L1 [1] 
+
+      comp->usingTimer = msg[3]-48;   //L1 1 [1]010
+      comp->usingPin = msg[4]-48;     //L1 1 1[0]10
+      comp->usingRFID = msg[5]-48;    //L1 1 10[1]0
+      comp->usingFP = msg[6]-48;      //L1 1 101[0]
+
+      // if(comp->usingTimer || comp->usingPin || comp->usingRFID || comp->usingFP)
+      //   comp->isLocked = true;
+      // else
+      //   comp->isLocked = false;
+
+      if(comp->usingTimer)
+      {
+        comp->timer[0] = msg[7]; //L1 1 1011 [0]2 53
+        comp->timer[1] = msg[8]; //L1 1 1011 0[2] 53
+        comp->timer[2] = msg[9]; //L1 1 1011 02 [5]3
+        comp->timer[3] = msg[10]; //L1 1 1011 02 5[3]
+      }        
+      
+    }
 }
 
 
@@ -406,6 +458,8 @@ void connect_callback(uint16_t conn_handle)
 
   Serial.print("Connected to ");
   Serial.println(central_name);
+
+  // currentState = 0;
 }
 
 /**
@@ -420,6 +474,8 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason)
 
   Serial.println();
   Serial.print("Disconnected, reason = 0x"); Serial.println(reason, HEX);
+
+  // currentState = 2;
 }
 
 
