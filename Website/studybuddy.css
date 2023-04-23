@@ -1,0 +1,387 @@
+:root {
+	
+	--light-green: #12BF00;
+	--dark-green: #159100;
+	
+	--bg-accent: #393C42;
+	--light-blue: #40D6FF;
+	
+    --gray-light: #5e6074;
+	--gray-dark: #252635;
+	
+	--accent-light: #0f2399;
+	--accent-dark: #0C2340;
+	--bg-color: #f1f5f7;
+	--bg-blue: #F0F0FF;
+	--bg-dark-blue: #E0E0FF;
+	
+	--blue-text: #0C2340;
+	--black-text: #000000;
+	--white-text: #FFFFFF;
+	
+}
+
+html {
+    display: flex;
+    height: 100%;
+}
+
+body {
+    flex-grow:1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    margin: 0px;
+
+	background-color: var(--bg-color);
+	display: flex;
+	flex-direction: column;
+    min-width: 420px;
+
+    font-family: 'Courier New', Courier, monospace;
+}
+
+
+/* -----------Top Bar------------- */
+header {
+	background-color: var(--bg-color);
+	
+	flex-shrink:0;
+	
+	margin-top: -10px;
+}
+
+.titleBar {
+	display:flex;
+	flex-direction: row;
+    align-items: center;
+	margin-left: 70px;
+	margin-bottom:0px;
+	padding:6px;
+    height: 100px;
+}
+header h1 {
+	font-family: 'Chakra Petch';
+    margin: 0px;	
+}
+header h4 {
+	font-family: Arial;
+    margin: 0px;
+}
+header h5 {
+    margin: 0px;
+    margin-left:10px;
+}
+.sticky-top {
+    position: fixed;
+    top: 0;
+    width: 100%
+}
+.sticky-bottom {
+    position: fixed;
+    bottom: 0;
+    width: 100%
+}
+  
+.sticky-top + .content {
+    padding-top: 102px;
+}
+.sticky-top + .content {
+    padding-top: 102px;
+}
+.logoTypeDiv {
+    margin-right: 30px;
+    flex-shrink: 0;
+}
+.titleRightSide {
+    display: flex;
+    flex-grow: 1;
+    min-width: 50px;
+    flex-direction: row-reverse;
+    flex-shrink: 0;
+    margin-right: 40px;
+}
+
+.main-link{
+	color: var(--blue-text);
+	text-decoration: none;
+	/* font-family: papyrus; */
+}
+.main-link:visited {
+	color: var(--blue-text);
+	text-decoration: none;
+}
+.main-link:hover {
+	color: var(--blue-text);
+	text-decoration: none;
+}
+
+nav {
+    background-color: var(--gray-dark);
+}
+header nav table {
+	margin-left:75px;
+	margin-right:50px;
+	margin-top:-10px;
+    margin-bottom: -2px;
+}
+header nav td {
+	background-color: var(--gray-dark);
+    color: var(--white-text);
+	padding-top:7px;
+	padding-bottom:7px;
+	padding-left:15px;
+	padding-right:15px;
+}
+nav a {
+    text-decoration: none;
+    color: var(--gray-light);
+}
+nav a:hover {
+    text-decoration: none;
+    color: var(--white-text);
+}
+nav .selected a {
+    color: var(--white-text);
+}
+header nav td.selected {
+    background-color: var(--accent-light);
+    border-color: var(--accent-light);
+}
+.accent-bar {
+    height: 5px;
+    background-color: var(--accent-light);
+}
+.footer-bottom {
+    height: 45px;
+    background-color: var(--gray-dark);
+}
+a.jump {
+    display: block;
+    position: relative;
+    top: -125px;
+    visibility: hidden;
+}
+
+
+/* -----------Sections------------- */
+.content {
+    flex-grow: 1;
+
+    padding-left: 80px;
+    padding-right: 80px;
+    padding-top: 15px;
+
+    display: flex;
+    flex-direction: column;
+}
+.section {
+    display: inherit;
+    flex-direction: inherit;
+}
+.section-header {
+    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 30px;
+    font-size: 25px;
+    font-weight: bold;
+}
+.section-header-mini {
+    font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 20px;
+    font-size: 17px;
+    font-weight: bold;
+}
+.section-space {
+    height: 10px;
+}
+.section-space-large {
+    height: 40px;
+}
+
+/* -----------Images------------- */
+#img-gallery {
+    /* display: flex;
+    flex-direction: row; */
+    max-width: 1500px;
+}
+#doc-gallery {
+    max-width: 1000px;
+}
+div.gallery {
+    border: 1px solid #ccc;
+}
+/* .gallery img {
+    max-height: 400px;
+    width:auto;
+} */
+  
+div.gallery:hover {
+    border: 1px solid #777;
+}
+  
+div.gallery img {
+    width: 100%;
+    height: auto;
+}
+  
+div.desc {
+    padding: 15px;
+    text-align: center;
+}
+  
+* {
+    box-sizing: border-box;
+}
+  
+.responsive {
+    padding: 0 6px;
+    float: left;
+    width: 24.99999%;
+}
+  
+@media only screen and (max-width: 1000px) {
+    .responsive {
+      width: 33.33333%;
+      margin: 6px 0;
+    }
+}
+  
+@media only screen and (max-width: 700px) {
+    .responsive {
+      width: 49.99999%;
+    }
+}
+  
+.clearfix:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+
+
+
+/* -----------Members------------- */
+#bio table {
+    table-layout : fixed;
+}
+
+#bio td {
+    vertical-align: top;
+    padding-left: 10px;
+    padding-right: 10px;
+    max-width: 250px;
+}
+#bio img {
+    height: 200px;
+}
+
+/* -----------Misc------------- */
+.centered {
+    display: flex;
+    justify-content: center;
+}
+.big-underscore {
+    width: fit-content;
+    flex-grow: 0;
+    border-bottom: 5px solid #ccc;
+    border-bottom-color: var(--accent-light);
+}
+.no-margin
+{
+    margin:0;
+}
+
+/* -----------Dynamic------------- */
+@media (max-width: 980px)
+{
+  #bio img {
+    height: 175px;
+    }
+}
+@media (max-width: 895px)
+{
+  #bio img {
+    height: 150px;
+    }
+}
+@media (max-width: 795px)
+{
+  #bio img {
+    height: 125px;
+    }
+}
+@media (max-width: 695px)
+{
+  #bio img {
+    height: 100px;
+    }
+}
+
+@media (max-width: 840px)
+{
+  img {
+      max-height: 300px;
+  }
+}
+
+@media (max-width: 665px)
+{
+    img {
+        max-height: 250px;
+    }
+}
+
+@media (max-width: 580px) {
+    .titleBar {
+        margin-left: 35px;
+    }
+    header nav table {
+        margin-left:40px;
+        margin-right:50px;
+    }
+    .content
+    {
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+    nav td {
+        padding-top:7px;
+        padding-bottom:7px;
+        padding-left:6px;
+        padding-right:6px;
+    }
+    span.section-header
+    {
+        font-size: 18px;
+    }
+    .section p {
+        font-size: 12px;
+    }
+    nav td a{
+        font-size: 9px;
+    }
+    h1 {
+        font-size: 22px;
+    }
+    h2 {
+        font-size: 16px;
+    }
+    h4 {
+        font-size: 13px;
+    }
+    h5 {
+        font-size: 10px;
+    }
+    .logoTypeDiv {
+        margin-right: 15px;
+        flex-shrink: 0;
+    }
+    .titleRightSide {
+        min-width: 50px;
+        flex-shrink: 0;
+    }
+    img {
+        max-height: 200px;
+    }
+  }
+

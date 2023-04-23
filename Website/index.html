@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+    <meta charset="UTF-8">
+	
+	<title>The Study Buddy</title>
+	<link rel="icon" href="./pictures/favicon.png" type="image/x-icon">
+	
+	<link rel="stylesheet" href="studybuddy.css">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Chakra+Petch ">
+
+    <script src="fun.js"></script>
+
+	<body>
+        <!-- Title Bar -->
+        <header class="sticky-top">
+            <div class="titleBar" >
+                <div class="logoTypeDiv">
+                    <h1><a class="main-link" href="#Home">The Study Buddy</a></h1>
+                    <h5>A Timed Multi-Factor Storage Locker </h5>
+                </div>
+                <div class="titleRightSide">
+                    <h4>Group 33 Spring 2023</h4>
+                </div>
+            </div>
+            <nav>
+                <table>
+                    <tr>
+                        <td class="selected"><a href="#about">Home</a></td>
+                        <td><a href="#images">Images</a></td>
+                        <td><a href="#videos">Videos</a></td>
+                        <td><a href="#documents">Documents</a></td>
+                        <td><a href="#members">Members</a></td>
+                    </tr>
+                </table>
+                <div class="accent-bar"></div>
+            </nav>
+        </header>
+        <div class="content">
+            <!-- About -->
+            <span class="section-space-large"></span>
+            <a id="about" class="jump"></a>
+            <div id="about-div" class="section">
+                <span class="section-header big-underscore">About the Study Buddy:</span>
+                <br>
+                <div class="centered">
+                    <img style="height:350px" src="./pictures/locker-table.jpeg" alt="Locker">
+                </div>
+                <span class="section-space"></span>
+                <span class="section-space"></span>
+                <p>Students in the modern day have access to a large variety of distractions at home tempting them away from studying and homework. </p>
+                <p>Our device is a 3-compartment locker that can contain items such as smartphones, laptops, and game controllers, and that can be locked with a timer or multiple configurable unlocking methods such as a keypad, fingerprint scanner, and RFID reader. This device is intended for parents of younger children for parental control, or for high school/college students with good self-discipline that just need a barrier between them and distractions to increase productivity. </p>
+                <p>The device uses a microcontroller to connect and manage multiple input devices and monitor reed switches to determine when to turn motors that lock the compartment doors. Other similar available products are insecure plastic cases that can hold one cell phone, or standard heavy-duty safes that are unnecessarily heavy with fewer input options.</p>
+                <p>Our overall input and locking system could be re-used for standard security purposes, such as locking a regular door in one's home. Other features are a vibration sensor for phone call/text message detection, support for interior USB chargers, and a remote that can monitor timers and override the locking system. </p>
+            </div>
+            <span class="section-space-large"></span>
+            <span class="section-space-large"></span>
+            <!-- images -->
+            <a id="images" class="jump"></a>
+            <div id="images-div" class="section">
+                <span class="section-header big-underscore">Images:</span>
+                <br>
+                <div id="img-gallery">
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/locker-demo-table.jpeg">
+                            <img src="./pictures/locker-demo-table.jpeg" alt="locker front" width="600" height="400">
+                        </a>
+                        <div class="desc">Locker front</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/locker-inside.jpeg">
+                            <img src="./pictures/locker-inside.jpeg" alt="locker inside" width="600" height="400">
+                        </a>
+                        <div class="desc">Locker compartments</div>
+                        </div>
+                    </div>
+                    
+                    <div class="responsive">
+                        <div class="gallery">
+                            <a target="_blank" href="./pictures/locker-back.jpeg">
+                                <img src="./pictures/locker-back.jpeg" alt="locker back" width="600" height="400">
+                            </a>
+                            <div class="desc">Back of locker</div>
+                        </div>
+                    </div>
+                    
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/board-and-panel.jpg">
+                            <img src="./pictures/board-and-panel.jpg" alt="front panel inside" width="600" height="400">
+                        </a>
+                        <div class="desc">User interface panel</div>
+                        </div>
+                    </div>
+                                                        
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/locks.jpg">
+                            <img src="./pictures/locks.jpg" alt="locks" width="600" height="400">
+                        </a>
+                        <div class="desc">Locking mechanism</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/locking-mech.jpeg">
+                            <img src="./pictures/locking-mech.jpeg" alt="locking mechanism" width="600" height="400">
+                        </a>
+                        <div class="desc">Locking mechanism installed</div>
+                        </div>
+                    </div>
+                                        
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/remote.jpg">
+                            <img src="./pictures/remote.jpg" alt="remote" width="600" height="400">
+                        </a>
+                        <div class="desc">Remote</div>
+                        </div>
+                    </div>
+                                        
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/locker-breadboard.jpg">
+                            <img src="./pictures/locker-breadboard.jpg" alt="locker breadboard" width="600" height="400">
+                        </a>
+                        <div class="desc">Locker bread-board</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/locker-pcb.jpg">
+                            <img src="./pictures/locker-pcb.jpg" alt="locker pcb" width="600" height="400">
+                        </a>
+                        <div class="desc">Locker PCB</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/remote-pcb.jpg">
+                            <img src="./pictures/remote-pcb.jpg" alt="remote pcb" width="600" height="400">
+                        </a>
+                        <div class="desc">Remote bread-board and PCB</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/locker-diagram.png">
+                            <img src="./pictures/locker-diagram.png" alt="locker block diagram" width="600" height="400">
+                        </a>
+                        <div class="desc">Locker hardware diagram</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/remote-diagram.png">
+                            <img src="./pictures/remote-diagram.png" alt="remote block diagram" width="600" height="400">
+                        </a>
+                        <div class="desc">Remote hardware diagram</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/user-diagram.png">
+                            <img src="./pictures/user-diagram.png" alt="software diagram" width="600" height="400">
+                        </a>
+                        <div class="desc">Software block diagram</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/interface.PNG">
+                            <img src="./pictures/interface.PNG" alt="interface cad" width="600" height="400">
+                        </a>
+                        <div class="desc">User interface panel CAD</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/interface-back.PNG">
+                            <img src="./pictures/interface-back.PNG" alt="interface back cad" width="600" height="400">
+                        </a>
+                        <div class="desc">User interface panel back</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/lock-cad.PNG">
+                            <img src="./pictures/lock-cad.PNG" alt="lock cad" width="600" height="400">
+                        </a>
+                        <div class="desc">Locking mechanism CAD</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/remote-cad.PNG">
+                            <img src="./pictures/remote-cad.PNG" alt="remote cad" width="600" height="400">
+                        </a>
+                        <div class="desc">Remote CAD</div>
+                        </div>
+                    </div>
+
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./pictures/remote-back-cad.PNG">
+                            <img src="./pictures/remote-back-cad.PNG" alt="remote back cad" width="600" height="400">
+                        </a>
+                        <div class="desc">Remote back CAD</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <span class="section-space-large"></span>
+            <span class="section-space-large"></span>
+            <!-- Videos -->
+            <a id="videos" class="jump"></a>
+            <div id="videos-div" class="section">
+                <span class="section-header big-underscore">Videos:</span>
+                <span class="section-header-mini">Critical Design Review</span>
+                <iframe width="560" height="315" src="https://www.youtube.com/embed/8QCGjU7FQ9o" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <span class="section-space"></span>
+                <span class="section-space"></span>
+                <span class="section-header-mini">Middle-Term Demo</span>
+                <iframe width="560" height="315" src="https://www.youtube.com/embed/v7rB1uhWgAU" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <span class="section-space"></span>
+                <span class="section-space"></span>
+                <span class="section-header-mini">Senior Design Showcase video</span>
+                <iframe width="560" height="315" src="https://www.youtube.com/embed/VhSqVyyQBZs" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <span class="section-space"></span>
+                <span class="section-space"></span>
+                <span class="section-header-mini">Final Presentation</span>
+                <iframe width="560" height="315" src="https://www.youtube.com/embed/WMjV-raG5uc" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                <span class="section-space"></span>
+                <span class="section-space"></span>
+                <span class="section-header-mini">Final Demo</span>
+                <iframe width="560" height="315" src="https://www.youtube.com/embed/k4x1i8BWAKU" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+            <span class="section-space-large"></span>
+            <span class="section-space-large"></span>
+            <!-- Documents -->
+            <a id="documents" class="jump"></a>
+            <div id="docs-div" class="section">
+                <span class="section-header big-underscore">Documents:</span>
+                <span class="section-header-mini"></span>
+                <div id="doc-gallery">
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./documents/Group-33-Divide-and-Conquer-2.pdf">
+                            <img src="./documents/sd1-dc-thumb.png" alt="locker front" width="600" height="400">
+                        </a>
+                        <div class="desc">Divide and Conquer 2</div>
+                        </div>
+                    </div>
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./documents/Group-33-SD1-Final-120-Page-Document.pdf">
+                            <img src="./documents/sd1-final-doc-thumb.png" alt="locker front" width="600" height="400">
+                        </a>
+                        <div class="desc">SD1 final 120 page document</div>
+                        </div>
+                    </div>
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./documents/Group-33-8-Page-Conference-Paper.pdf">
+                            <img src="./documents/sd2-8-page-thumb.png" alt="locker front" width="600" height="400">
+                        </a>
+                        <div class="desc">8 Page Conference Paper</div>
+                        </div>
+                    </div>
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./documents/Group-33-SD2-Final-Document.pdf">
+                            <img src="./documents/sd2-final-doc-thumb.png" alt="locker front" width="600" height="400">
+                        </a>
+                        <div class="desc">SD2 Final document</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="gallery">
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./documents/Group-33-CDR.pptx">
+                            <img src="./documents/sd2-pres-thumb.png" alt="locker front" width="600" height="400">
+                        </a>
+                        <div class="desc">CDR presentation</div>
+                        </div>
+                    </div>
+                    <div class="responsive">
+                        <div class="gallery">
+                        <a target="_blank" href="./documents/Group-33-Final-Presentation.pptx">
+                            <img src="./documents/sd2-pres-thumb.png" alt="locker front" width="600" height="400">
+                        </a>
+                        <div class="desc">Final Presentation</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <span class="section-space-large"></span>
+            <span class="section-space-large"></span>
+            <!-- Members -->
+            <a id="members" class="jump"></a>
+            <div id="members-div" class="section">
+                <span class="section-header big-underscore">Members:</span>
+                <div class="centered">
+                    <img style="height:350px" src="./pictures/group-photo.jpeg" alt="Locker">
+                </div>
+                <span class="section-space"></span>
+                <span class="section-space"></span>
+                <div id="bio">
+                    <table class="centered">
+                        <tr>
+                            <td>
+                                <div class="centered">
+                                    <img src="./pictures/idris-photo.jpg" alt="idris">
+                                </div>
+                                <p class="centered">Idris Al-Shidhani</p>
+                                <p class="centered">A senior student at
+                                    University of Central Florida, and he plans to graduate
+                                    in May of 2023 with a Bachelor
+                                    of Science in Electrical
+                                    Engineering. He plans to
+                                    continue studying power
+                                    electronics to develop reliable
+                                    power control designs for future
+                                    power storage technologies and
+                                    power harvesting.</p>
+                            </td>
+                            <td>
+                                <div class="centered">
+                                    <img class="centered" src="./pictures/denzel-photo.png" alt="denzel">
+                                </div>
+                                <p class="centered">Denzel Stockhausen</p>
+                                <p class="centered">A senior
+                                    student at the University of
+                                    Central Florida and plans to
+                                    graduate in May of 2023 with a
+                                    bachelor’s degree in Electrical
+                                    Engineering. He plans to pursue
+                                    a career somewhere in the state
+                                    of Florida.</p>
+                            </td>
+                            
+                            <td>
+                                <div class="centered">
+                                    <img class="centered" src="./pictures/cliff-photo.png" alt="cliff">
+                                </div>
+                                <p class="centered">Cliff Porter</p>
+                                <p class="centered">A senior
+                                    pursuing a bachelor's degree in
+                                    Computer Engineering at the
+                                    University of Central Florida
+                                    expecting to graduate in Spring
+                                    2023. He intends to pursue a
+                                    career in robots or consumer
+                                    electronics near Orlando after
+                                    graduating.</p>
+                            </td>
+                            <td>
+                                <div class="centered">
+                                    <img class="centered" src="./pictures/kaiden-photo.png" alt="kaiden">
+                                </div>
+                                <p class="centered">Kaiden Duvall</p>
+                                <p class="centered">A senior
+                                    studying Computer Engineering
+                                    at the University of Central
+                                    Florida, graduating with a
+                                    bachelor’s degree in Spring
+                                    2023. He intends to pursue a
+                                    career focusing on software in
+                                    the Orlando area after
+                                    graduation.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <span class="section-space-large"></span>
+                <!-- <span class="section-space"></span> -->
+                <span class="section-header-mini">Acknowledgements:</span>
+                <p class="no-margin">We would like to thank:</p>
+                <ul>
+                    <li>
+                        Professors Lei Wei and Samuel Richie for their oversight and assistance
+                        during the course of our project
+                    </li>
+                    <li>
+                        The many professors
+                        and staff of UCF and the Department of Electrical and
+                        Computer Engineering that have guided us during our
+                        education.
+                    </li>
+                    <li>
+                        And Steve Porter for assisting us with the
+                        construction of our locker.
+                    </li>
+                </ul>
+                <span class="section-space-large"></span>
+                <span class="section-space-large"></span>
+            </div>
+        </div>
+        <footer >
+            <div class="accent-bar"></div>
+            <div class="footer-bottom" style="display:flex; flex-direction:row-reverse ";>
+                <img src="pictures/little-man.png" style="height:35px; margin-top:5px; margin-right:5px; opacity:0.1" Title="Look at this dude! :]"alt=" ">
+            </div>
+        </footer>
+	</body>
+</html>
